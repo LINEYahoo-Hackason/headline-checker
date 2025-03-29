@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "見出しチェッカー",
   "version": "1.0",
-  "description": "ニュース見出しにカーソルを当ててボタンを押すと、AIが本文を読み取り正しい見出しを提示する拡張機能です。"
+  "description": "ニュース見出しにカーソルを当ててボタンを押すと、AIが本文を読み取り正しい見出しを提示する拡張機能です。",
   "permissions": ["scripting", "activeTab"],
   "host_permissions": [
     "http://localhost:8000/*",
