@@ -1,5 +1,7 @@
+
 (function () {
     console.log("✅ content.js が実行されました");
+
 
     // ボタン要素を作成する関数
     function createButton(element) {
@@ -7,18 +9,24 @@
         button.innerText = "AI見出し"; // ボタンのテキスト
         button.className = "ai-button"; // ボタンのクラス名
         button.style.position = "absolute"; // ボタンの位置を絶対配置
-        button.style.top = "0px"; // ボタンの上端位置
-        button.style.right = "0px"; // ボタンの右端位置
-        button.style.fontSize = "12px"; // ボタンのフォントサイズ
-        button.style.padding = "4px 8px"; // ボタンのパディング
-        button.style.zIndex = "1000"; // ボタンのz-index
-        button.style.cursor = "pointer"; // カーソルをポインタに
-        button.style.backgroundColor = "#4CAF50"; // ボタンの背景色
-        button.style.color = "#fff"; // ボタンの文字色
-        button.style.border = "1px solid #2e8b57"; // ボタンの境界線
-        button.style.borderRadius = "4px"; // ボタンの角を丸くする
-        return button; // 作成したボタンを返す
-    }
+        
+		button.style.top = "-0.6px";
+   		button.style.right = "0px";
+    	button.style.fontSize = "12px";
+    	button.style.lineHeight = "12px";
+    	button.style.fontFamily = '"BIZ UDゴシック", sans-serif';
+    	button.style.padding = "4px 20px";
+    	button.style.zIndex = "1000";
+    	button.style.cursor = "pointer";
+
+    // ✅ 通常時の見た目（白背景・黒文字・枠線#4a8a57）
+    	button.style.backgroundColor = "#ffffff";
+    	button.style.color = "#000000";
+    	button.style.border = "2px solid #4a8a57";
+    	button.style.borderRadius = "4px";
+
+    	return button;
+	}
 
     // 記事URLをバックエンドに送信し、見出しを取得
     function fetchHeadline(articleUrl) {
