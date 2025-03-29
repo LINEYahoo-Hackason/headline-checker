@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "見出しチェッカー",
+  "version": "1.0",
+  "description": "ニュース見出しをAIで検証する拡張機能",
+  "permissions": ["scripting", "activeTab"],
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "https://www.goo.ne.jp/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.goo.ne.jp/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
