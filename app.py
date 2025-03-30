@@ -5,8 +5,7 @@ from bs4 import BeautifulSoup
 
 # 定数定義
 MODEL_NAME = "elyza-japanese-llama-2-7b-fast-instruct"
-#API_URL = "http://localhost:1234/v1/chat/completions"
-API_URL = "elyza-japanese-llama-2-7b-fast-instruct"
+API_URL = "http://localhost:1234/v1/chat/completions"
 TEMPERATURE = 0.1
 
 # Flaskアプリケーションの初期化
