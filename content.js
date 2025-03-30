@@ -36,7 +36,14 @@
             body: JSON.stringify({ url: articleUrl }) // 記事URLをJSON形式で送信
         })
         .then(res => res.json()) // レスポンスをJSONとして解析
-        .then(data => alert(`💡 AIによる見出し提案:\n${data.headline}`)) // 取得した見出しをアラート表示
+        .then(data => {
+            if (data.judge) {
+                data.headline = "見出しは適切である"; // 見出しが適切である場合
+            } else {
+                alert(`💡 AIによる新しい見出し提案:\n${data.headline}`); // 新しい見出しを提案
+            }})
+
+            // alert(`💡 AIによる見出し提案:\n${data.headline}`)  // 取得した見出しをアラート表示
         .catch(err => alert("⚠️ 記事の取得に失敗しました。")); // エラーハンドリング
     }
 
