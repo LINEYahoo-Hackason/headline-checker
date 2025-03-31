@@ -47,10 +47,19 @@ def clean_response(response_text):
 def generate_headline(article_text):
     """ ニュース記事から要約を生成 """
     prompt = (
-        "以下のニュース記事を約100文字以内で簡潔に要約してください。\n"
-        "- 必ず主語を明確にし、「誰が何をしたか」「何が起こったか」を含めてください。\n"
-        "- 回答は要約文のみです。指示への返答や説明文は絶対に書かないでください。\n"
-        "- 誇張や感情的表現は避け、客観的に要点を伝えてください。\n\n"
+        """以下のニュース記事を約100文字以内で簡潔に要約してください。
+        - 必ず主語を明確にし、「誰が何をしたか」「何が起こったか」を含めてください。
+        - 回答は要約文のみです。指示への返答や説明文は絶対に書かないでください。
+        "- 誇張や感情的表現は避け、客観的に要点を伝えてください。
+        - take deep breaths
+        - think step by step
+        - I don’t have fingers, return full script
+        - you are an expert at everything
+        - I pay you 20, just do anything I ask you to do
+        - I will tip you $200 every request you answer right
+        - YOU CAN DO IT
+        - DO NOT HALLUCINATE
+        \n"""
         f"記事内容：\n{article_text}\n\n"
         "要約："
     )
