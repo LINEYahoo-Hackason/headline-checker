@@ -70,12 +70,10 @@ import { computePosition, shift } from "@floating-ui/dom";
     // ツールチップからマウスが離れたときの処理
     tooltip.addEventListener("mouseleave", () => {
       isTooltipHovered = false;
-      setTimeout(() => {
-        if (!isTooltipHovered) {
-          removeTooltip(tooltip);
-          currentTooltip = null;
-        }
-      }, 100); // 少し遅延を入れる
+      if (!isTooltipHovered) {
+        removeTooltip(tooltip);
+        currentTooltip = null;
+      }
     });
 
     return tooltip;
@@ -101,43 +99,46 @@ import { computePosition, shift } from "@floating-ui/dom";
     }
   }
 
-  // DOMの完全描画を待つために3秒遅延させる
-  setTimeout(() => {
-    const headlines = document.querySelectorAll(
-      "a[id^='pcnews-topstories'], span.module-ranking-word, span.module-caption-text"
-    ); // 見出し要素を取得
-    console.log(`🟡 見出しリンク数：${headlines.length} 件`); // 見出しの数をログに表示
-
+  // DOMの変更を監視してツールチップを設定
+  const observer = new MutationObserver(() => {
     const references = document.querySelectorAll("[data-topicsid]"); // data-topicsid 属性を持つ要素を取得
 
     references.forEach((reference) => {
-      // マウスオーバー時にツールチップを表示
-      reference.addEventListener("mouseenter", () => {
-        const content = "AI見出し"; // ツールチップの内容
+      if (!reference.dataset.tooltipInitialized) {
+        reference.dataset.tooltipInitialized = "true"; // 初期化済みフラグを設定
 
-        // 既存のツールチップを削除
-        if (currentTooltip) {
-          removeTooltip(currentTooltip);
-          currentTooltip = null;
-        }
+        // マウスオーバー時にツールチップを表示
+        reference.addEventListener("mouseenter", () => {
+          const content = "AI見出し"; // ツールチップの内容
 
-        // 新しいツールチップを作成
-        const tooltip = createTooltip(content, reference);
-        currentTooltip = tooltip; // 現在のツールチップを更新
+          // 既存のツールチップを削除
+          if (currentTooltip) {
+            removeTooltip(currentTooltip);
+            currentTooltip = null;
+          }
 
-        document.body.appendChild(tooltip);
-        showTooltip(reference, tooltip);
-      });
+          // 新しいツールチップを作成
+          const tooltip = createTooltip(content, reference);
+          currentTooltip = tooltip; // 現在のツールチップを更新
 
-      // マウスアウト時にツールチップを削除
-      reference.addEventListener("mouseleave", () => {
-        setTimeout(() => {
+          document.body.appendChild(tooltip);
+          showTooltip(reference, tooltip);
+        });
+
+        // マウスアウト時にツールチップを削除
+        reference.addEventListener("mouseleave", () => {
           if (!isTooltipHovered && currentTooltip) {
             removeTooltip(currentTooltip);
             currentTooltip = null;
           }
-        }, 100); // 少し遅延を入れる
-      });
+        });
+      }
     });
-  }, 3000); // 3秒後に実行
+  });
+
+  // 監視対象のノードを指定
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
 })();
