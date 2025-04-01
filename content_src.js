@@ -5,7 +5,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
   let BASE_URL, REFERENCE_SELECTORS;
   BASE_URL = "https://www.goo.ne.jp";
-  REFERENCE_SELECTORS = ["a[id*='pcnews'], span.module-ranking-word, span.module-caption-text"]
+  NEXT_URL = "https://news.goo.ne.jp/";
   // BASE_URL = "https://news.yahoo.co.jp";
   // REFERENCE_SELECTORS = [
   //   "#uamods-topics > div > div > div > ul > li > a",
@@ -88,7 +88,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     tooltip.style.position = "absolute";
     tooltip.style.backgroundColor = "#4a8a57"; // 背景色を緑に変更
     tooltip.style.color = "#ffffff"; // テキスト色を白に変更
-    tooltip.style.padding = "6px 12px"; // パディングを調整
+    tooltip.style.padding = "2px 8px"; // パディングを調整
     tooltip.style.boxShadow = "0 0 0 1px rgb(0, 0, 0)";
     tooltip.style.borderRadius = "4px"; // 丸みを追加
     tooltip.style.fontSize = "14px"; // フォントサイズを調整
@@ -106,6 +106,8 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       let articleUrl = null;
       if (reference.tagName === "A") {
         articleUrl = reference.href; // referenceが<a>タグの場合
+      } else if (reference.querySelector("a")) {
+        articleUrl = reference.querySelector("a").href; // 子要素に<a>タグがある場合
       } else {
         const parentLink = reference.closest("a"); // 親要素に<a>タグがあるか探索
         if (parentLink) {
@@ -146,7 +148,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       middleware: [shift(), flip()],
     }).then(({ x, y }) => {
       Object.assign(tooltip.style, {
-        left: `${x}px`,
+        left: `${x - 20}px`,
         top: `${y}px`,
       });
     });
@@ -170,7 +172,11 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
   // ツールチップを設定する関数
   function setupTooltips() {
-    const references = document.querySelectorAll(REFERENCE_SELECTORS); // 見出し要素を取得
+    const references = Array.from(document.querySelectorAll("ul > li")) // ul > li 要素を取得
+      .filter((li) => {
+        const link = li.querySelector("a"); // <a>タグを取得
+        return link && link.href.startsWith(NEXT_URL); // リンク先が条件を満たすか確認
+      });
 
     logReferenceCount(references); // リンク数をログに表示
 
