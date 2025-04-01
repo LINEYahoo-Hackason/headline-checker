@@ -10,7 +10,7 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://www.goo.ne.jp/*"],
+      "matches": ["https://www.goo.ne.jp/*","https://news.yahoo.co.jp/*"],
       "js": ["content.js"]
     }
   ]

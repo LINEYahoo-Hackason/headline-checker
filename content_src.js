@@ -1,7 +1,16 @@
-import { computePosition, shift , flip } from "@floating-ui/dom";
+import { computePosition, shift, flip } from "@floating-ui/dom";
 
 (function () {
   console.log("✅ content.js が実行されました");
+
+  let BASE_URL, REFERENCE_SELECTORS;
+  BASE_URL = "https://www.goo.ne.jp";
+  REFERENCE_SELECTORS = ["a[id*='pcnews'], span.module-ranking-word, span.module-caption-text"]
+  // BASE_URL = "https://news.yahoo.co.jp";
+  // REFERENCE_SELECTORS = [
+  //   "#uamods-topics > div > div > div > ul > li > a",
+  //   "#newsFeed > ul > li > div > a",
+  // ];
 
   let currentTooltip = null; // 現在表示されているツールチップを追跡
   let isTooltipHovered = false; // ツールチップがホバーされているかを追跡
@@ -64,7 +73,9 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
   }
 
   // トップページ専用：URLが https://www.goo.ne.jp/ で始まる場合のみ実行
-  if (!/^https:\/\/www\.goo\.ne\.jp\//.test(location.href)) {
+  const isTargetPage = new RegExp("^" + BASE_URL).test(location.href);
+
+  if (!isTargetPage) {
     console.log("⚠️ このページは対象外です。"); // 対象外の場合のメッセージ
     return; // 処理を終了
   }
@@ -159,9 +170,7 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
 
   // ツールチップを設定する関数
   function setupTooltips() {
-    const references = document.querySelectorAll(
-      "a[id*='pcnews'], span.module-ranking-word, span.module-caption-text"
-    ); // 見出し要素を取得
+    const references = document.querySelectorAll(REFERENCE_SELECTORS); // 見出し要素を取得
 
     logReferenceCount(references); // リンク数をログに表示
 
@@ -202,7 +211,10 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       // クラス属性が変更された場合
-      if (mutation.type === "attributes" && mutation.attributeName === "class") {
+      if (
+        mutation.type === "attributes" &&
+        mutation.attributeName === "class"
+      ) {
         const target = mutation.target;
         if (target.classList.contains("active")) {
           console.log(`🟢 Activeクラスが変更されました: ${target.id}`);

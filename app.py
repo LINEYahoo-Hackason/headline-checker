@@ -11,9 +11,13 @@ import logging
 MODEL_NAME = "elyza-japanese-llama-2-7b-fast-instruct"
 API_URL = "http://localhost:1234/v1/chat/completions"
 TEMPERATURE = 0.1
+
 READ_MORE_SELECTOR = 'a.btn-default.btn-large.btn-radius.btn-shadow.btn-block.btn-fixation'
 ARTICLE_TEXT_SELECTOR = '.article-text'
 BASE_URL = "https://news.goo.ne.jp"
+# READ_MORE_SELECTOR = '#uamods-pickup > div[data-ual-view-type="digest"] > a'
+# ARTICLE_TEXT_SELECTOR = '#uamods > div.article_body.highLightSearchTarget > div > p'
+# BASE_URL = "https://news.yahoo.co.jp"
 
 # Flaskアプリケーションの初期化
 app = Flask(__name__)
@@ -53,7 +57,11 @@ def fetch_article_text(url):
     """ 記事URLから本文を取得し、必要に応じて「続きを読む」リンクを辿る """
     try:
         soup = fetch_page_content(url)
-        soup = follow_read_more_link(soup)
+        # 続きを読むリンクがある場合は辿る
+        try:
+            soup = follow_read_more_link(soup)
+        except Exception as e:
+            pass
         article_text = extract_article_text(soup)
         return article_text if article_text else "記事本文が見つかりませんでした"
     except RuntimeError as e:
