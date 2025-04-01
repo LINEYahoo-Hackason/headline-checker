@@ -73,7 +73,7 @@ def clean_response(response_text):
     for phrase in unwanted_phrases:
         response_text = response_text.replace(phrase, "").strip()
     # 複数行がある場合、最初の行のみを返す
-    return response_text.split("\n")[0].strip()
+    return response_text.split("\n")[0].strip().split("。")[0].strip()
 
 def generate_headline(article_text):
     """ ニュース記事から要約を生成 """
@@ -81,16 +81,14 @@ def generate_headline(article_text):
     prompt = (
         f"""
         あなたは優秀なニュース記事要約AIです。
-        !important 改行(\\n or \\n\\n),箇条書き(- )は挿入しないでください。1行で出力してください。回答は要約文のみです。指示への返答や説明文は絶対に書かないでください。完全な文章で回答してください。
-        !important ニュース記事(記事内容)を**約14字以内**で簡潔に要約してください。
-        - 必ず主語を明確にし、「誰が何をしたか」「何が起こったか」を含めてください。
-        - 誇張や感情的表現は避け、客観的に要点を伝えてください。
-        - 重要な情報を優先し、冗長な表現は省いてください。
-        - 具体的な数字やデータは可能な限り含めてください。
-        - 記事の内容を正確に反映し、誤解を招く表現は避けてください。
-        - PREP法(Point, Reason, Example, Point)を意識してください。
-        - 5W1H(Who, What, When, Where, Why, How)を意識してください。
-        - 句読点は使わず、名詞で終わるようにしてください。半角スペースを使ってください。
+        回答は要約文のみです。指示への返答や説明文は絶対に書かないでください。
+        記事内容を必ず16字以内で確実に要約して必ず16字以内で出力してください。
+        誇張や感情的表現は避け、客観的に要点を伝えてください。
+        重要な情報を優先し、冗長な表現は省いてください。
+        記事の内容を正確に反映し、誤解を招く表現は避けてください。
+        PREP法(Point, Reason, Example, Point)のPointを意識してください。
+        必ず主語を含めてください。
+        5W1H(Who, What, When, Where, Why, How)のWho, Whatを意識してください。
         記事内容：
         {article_text}
         要約：
