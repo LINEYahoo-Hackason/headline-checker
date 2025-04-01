@@ -6,7 +6,7 @@
     "esbuild": "0.25.2"
   },
   "scripts": {
-    "build": "esbuild --bundle content_src.js --outfile=content.js --minify --sourcemap",
-    "watch": "esbuild --bundle content_src.js --outfile=content.js --minify --sourcemap --watch"
+    "build": "esbuild --bundle content_src.js --outfile=content.js --minify --sourcemap --target=es2023,chrome134 --platform=browser",
+    "watch": "npm run build -- --watch"
   }
 }
