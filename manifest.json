@@ -13,5 +13,12 @@
       "matches": ["https://www.goo.ne.jp/*","https://news.yahoo.co.jp/*"],
       "js": ["content.js"]
     }
-  ]
+  ],
+  "action": {
+    "default_popup": "loading/fishing-animation.html",
+    "default_icon": "hello_extensions.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
 }

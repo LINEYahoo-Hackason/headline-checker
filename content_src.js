@@ -96,6 +96,8 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     tooltip.style.whiteSpace = "nowrap";
     tooltip.style.cursor = "pointer"; // クリック可能にする
     tooltip.style.boxShadow = "0px 4px 6px rgba(0, 0, 0, 0.1)"; // シャドウを追加
+    tooltip.dataset.popupButton = "headline-check-open-popup-button"; // データ属性を追加
+    tooltip.style.pointerEvents = "all"; // クリックイベントを有効化
 
     // クリックイベントを追加
     tooltip.addEventListener("click", (e) => {
@@ -200,6 +202,15 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
           document.body.appendChild(tooltip);
           showTooltip(reference, tooltip);
+          const button = document.querySelector('[data-popup-button="headline-check-open-popup-button"]');
+            if (button) {
+              button.addEventListener("click", () => {
+                // バックグラウンドスクリプトにメッセージを送信
+                chrome.runtime.sendMessage({ action: "openPopup" }, (response) => {
+                  console.log(response.status); // デバッグ用
+                });
+              });
+            }
         });
 
         // マウスアウト時にツールチップを削除

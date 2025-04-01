@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>釣りアニメーション</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 40px;
+        background: transparent;
+      }
+
+      .animation-wrapper {
+        position: relative;
+        width: 600px;
+        height: 150px;
+        margin: 0 auto;
+        overflow: hidden;
+      }
+
+      .fish {
+        position: absolute;
+        top: 50%;
+        left: 0%;
+        width: 80px;
+        height: auto;
+        transform: translateY(-50%);
+        transition: left 0.3s ease-out;
+        z-index: 1;
+      }
+
+      .fisher {
+        position: absolute;
+        bottom: 0;
+        right: 10px;
+        width: 120px;
+        height: auto;
+        z-index: 2;
+      }
+
+      .finish {
+        position: absolute;
+        bottom: 0;
+        right: 10px;
+        width: 120px;
+        height: auto;
+        display: none;
+        z-index: 3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="animation-wrapper" id="animationArea">
+      <img src="fish.png" class="fish" id="fish" />
+      <img src="fishing.png" class="fisher" id="fisher" />
+      <img src="finish.png" class="finish" id="finish" />
+    </div>
+
+    <script src="fishing-animation.js"></script>
+  </body>
+</html>
