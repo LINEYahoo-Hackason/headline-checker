@@ -2,6 +2,10 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 from bs4 import BeautifulSoup
+import threading
+import queue
+import time
+import logging
 
 # 定数定義
 MODEL_NAME = "elyza-japanese-llama-2-7b-fast-instruct"
@@ -14,6 +18,12 @@ BASE_URL = "https://news.goo.ne.jp"
 # Flaskアプリケーションの初期化
 app = Flask(__name__)
 CORS(app)
+
+# ログ設定
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# リクエストキューの作成
+request_queue = queue.Queue()
 
 def fetch_page_content(url):
     """ 指定されたURLのページ内容を取得 """
@@ -64,7 +74,7 @@ def generate_headline(article_text):
         f"""
         あなたは優秀なニュース記事要約AIです。
         !important 改行(\\n or \\n\\n),箇条書き(- )は挿入しないでください。1行で出力してください。回答は要約文のみです。指示への返答や説明文は絶対に書かないでください。完全な文章で回答してください。
-        ニュース記事(記事内容)を約100文字以内で簡潔に要約してください。
+        !important ニュース記事(記事内容)を**約14字以内**で簡潔に要約してください。
         - 必ず主語を明確にし、「誰が何をしたか」「何が起こったか」を含めてください。
         - 誇張や感情的表現は避け、客観的に要点を伝えてください。
         - 重要な情報を優先し、冗長な表現は省いてください。
@@ -79,18 +89,47 @@ def generate_headline(article_text):
         """
     )
     try:
-        # APIリクエストを送信して要約を生成
-        response = requests.post(API_URL, json={
-            "model": MODEL_NAME,  # 使用するモデル名
-            "messages": [{"role": "user", "content": prompt}],  # プロンプトを含むメッセージ
-            "temperature": TEMPERATURE  # 出力の多様性を制御するパラメータ
-        })
+        # APIリクエストを送信して要約を生成（タイムアウトを設定）
+        response = requests.post(
+            API_URL,
+            json={
+                "model": MODEL_NAME,  # 使用するモデル名
+                "messages": [{"role": "user", "content": prompt}],  # プロンプトを含むメッセージ
+                "temperature": TEMPERATURE  # 出力の多様性を制御するパラメータ
+            },
+            timeout=10  # タイムアウトを10秒に設定
+        )
         response.raise_for_status()  # ステータスコードがエラーの場合例外を発生
         # レスポンスから要約を抽出して返す
         return clean_response(response.json()["choices"][0]["message"]["content"])
+    except requests.Timeout:
+        # タイムアウト時のエラーメッセージを返す
+        return "要約生成に失敗しました: リクエストがタイムアウトしました"
     except requests.RequestException as e:
-        # リクエストエラー時のエラーメッセージを返す
+        # その他のリクエストエラー時のエラーメッセージを返す
         return f"要約生成に失敗しました: {str(e)}"
+
+def process_requests():
+    """ キュー内のリクエストを順次処理 """
+    while True:
+        try:
+            # キューからリクエストデータを取得
+            article_text, result_queue = request_queue.get()
+            logging.info("リクエスト処理を開始します")
+            
+            # 要約を生成
+            headline = generate_headline(article_text)
+            
+            # 結果を返す
+            result_queue.put(headline)
+            logging.info("リクエスト処理が完了しました")
+        except Exception as e:
+            logging.error(f"リクエスト処理中にエラーが発生しました: {str(e)}")
+        finally:
+            request_queue.task_done()
+
+# スプーラー用のスレッドを開始
+threading.Thread(target=process_requests, daemon=True).start()
 
 @app.route("/headline", methods=["POST"])
 def headline_api():
@@ -108,8 +147,15 @@ def headline_api():
         # 記事本文の取得に失敗した場合はエラーレスポンスを返す
         return jsonify({"headline": article_text}), 500
 
-    # 記事本文から要約を生成
-    headline = generate_headline(article_text)
+    # 結果を受け取るためのキューを作成
+    result_queue = queue.Queue()
+
+    # リクエストをキューに追加
+    request_queue.put((article_text, result_queue))
+
+    # 結果を待機
+    headline = result_queue.get()
+
     # 要約をJSON形式で返す
     return jsonify({"headline": headline})
 
