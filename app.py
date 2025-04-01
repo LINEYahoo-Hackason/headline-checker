@@ -79,7 +79,7 @@ def generate_headline(article_data):
         "- 重要な情報を含めてください。\n"
         "- 読者の興味を引くような表現を心がけてください。\n"
         "- 虚偽の内容を含めないでください。\n"
-        "- 見出しは短く、簡潔にしてください。\n\n"
+        "- 見出しは20字程度にしてください\n\n"
         f"記事内容：\n{article_data["article"]}\n\n"
         "見出し："
     )
@@ -112,7 +112,7 @@ def headline_api():
         if article_data["headline"] == None or article_data["article"].startswith("記事の取得に失敗しました"):
             return jsonify(article_data), 500
 
-        headline = generate_headline(article_data)
+    headline = generate_headline(article_data)
     return jsonify({"headline": headline, "original_headline": article_data["headline"], "judge": judge})
 
 if __name__ == "__main__":
