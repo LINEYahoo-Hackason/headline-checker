@@ -51,14 +51,23 @@ import { computePosition, shift } from "@floating-ui/dom";
       e.stopPropagation(); // イベントのバブリングを防ぐ
       e.preventDefault(); // デフォルトの動作を防ぐ
 
-      // `<li>` 内の `<a>` タグを取得して URL を取得
-      const articleUrl = reference.querySelector("a")?.href;
+      // `<a>`タグを取得
+      let articleUrl = null;
+      if (reference.tagName === "A") {
+        articleUrl = reference.href; // referenceが<a>タグの場合
+      } else {
+        const parentLink = reference.closest("a"); // 親要素に<a>タグがあるか探索
+        if (parentLink) {
+          articleUrl = parentLink.href;
+        }
+      }
 
       if (articleUrl) {
         console.log(`記事URL: ${articleUrl}`); // デバッグ用ログ
         fetchHeadline(articleUrl); // URLが存在する場合、見出しを取得
       } else {
         console.error("記事URLが見つかりませんでした。");
+        console.log("デバッグ情報:", reference.outerHTML); // referenceの内容をログに出力
       }
     });
 
@@ -101,7 +110,10 @@ import { computePosition, shift } from "@floating-ui/dom";
 
   // DOMの変更を監視してツールチップを設定
   const observer = new MutationObserver(() => {
-    const references = document.querySelectorAll("[data-topicsid]"); // data-topicsid 属性を持つ要素を取得
+    const references = document.querySelectorAll(
+      "a[id^='pcnews-topstories'], span.module-ranking-word, span.module-caption-text"
+    ); // 見出し要素を取得
+    console.log(`🟡 見出しリンク数：${references.length} 件`); // 見出しの数をログに表示
 
     references.forEach((reference) => {
       if (!reference.dataset.tooltipInitialized) {
