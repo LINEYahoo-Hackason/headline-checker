@@ -7,34 +7,47 @@ from bs4 import BeautifulSoup
 MODEL_NAME = "elyza-japanese-llama-2-7b-fast-instruct"
 API_URL = "http://localhost:1234/v1/chat/completions"
 TEMPERATURE = 0.1
+READ_MORE_SELECTOR = 'a.btn-default.btn-large.btn-radius.btn-shadow.btn-block.btn-fixation'
+ARTICLE_TEXT_SELECTOR = '.article-text'
+BASE_URL = "https://news.goo.ne.jp"
 
 # Flaskアプリケーションの初期化
 app = Flask(__name__)
 CORS(app)
 
+def fetch_page_content(url):
+    """ 指定されたURLのページ内容を取得 """
+    try:
+        res = requests.get(url)
+        res.raise_for_status()
+        return BeautifulSoup(res.text, 'html.parser')
+    except requests.RequestException as e:
+        raise RuntimeError(f"ページの取得に失敗しました: {str(e)}")
+
+def extract_article_text(soup):
+    """ BeautifulSoupオブジェクトから記事本文を抽出 """
+    article_content = soup.select_one(ARTICLE_TEXT_SELECTOR)
+    return article_content.get_text(strip=True) if article_content else None
+
+def follow_read_more_link(soup):
+    """ 「続きを読む」リンクを辿り、新しいページの内容を取得 """
+    read_more_link = soup.select_one(READ_MORE_SELECTOR)
+    if read_more_link:
+        read_more_href = read_more_link.get('href')
+        if read_more_href and not read_more_href.startswith('http'):
+            read_more_href = f"{BASE_URL}{read_more_href}"
+        return fetch_page_content(read_more_href)
+    return soup
+
 def fetch_article_text(url):
     """ 記事URLから本文を取得し、必要に応じて「続きを読む」リンクを辿る """
     try:
-        # 記事ページを取得
-        res = requests.get(url)
-        res.raise_for_status()
-        soup = BeautifulSoup(res.text, 'html.parser')
-
-        # 「続きを読む」リンクがある場合、その先のページを取得
-        read_more_link = soup.select_one('a.btn-default.btn-large.btn-radius.btn-shadow.btn-block.btn-fixation')
-        if read_more_link:
-            read_more_href = read_more_link.get('href')
-            if read_more_href and not read_more_href.startswith('http'):
-                read_more_href = f"https://news.goo.ne.jp{read_more_href}"
-            res = requests.get(read_more_href)
-            res.raise_for_status()
-            soup = BeautifulSoup(res.text, 'html.parser')
-
-        # 記事本文を抽出
-        article_content = soup.select_one('.article-text')
-        return article_content.get_text(strip=True) if article_content else "記事本文が見つかりませんでした"
-    except Exception as e:
-        return f"記事の取得に失敗しました：{str(e)}"
+        soup = fetch_page_content(url)
+        soup = follow_read_more_link(soup)
+        article_text = extract_article_text(soup)
+        return article_text if article_text else "記事本文が見つかりませんでした"
+    except RuntimeError as e:
+        return str(e)
 
 def clean_response(response_text):
     """ LLMからの応答テキストから不要なフレーズを削除して整形 """
@@ -46,53 +59,60 @@ def clean_response(response_text):
 
 def generate_headline(article_text):
     """ ニュース記事から要約を生成 """
+    # プロンプトの定義：ニュース記事を要約するための指示を含む
     prompt = (
-        """以下のニュース記事を約100文字以内で簡潔に要約してください。
+        f"""
+        あなたは優秀なニュース記事要約AIです。
+        !important 改行(\\n or \\n\\n),箇条書き(- )は挿入しないでください。1行で出力してください。回答は要約文のみです。指示への返答や説明文は絶対に書かないでください。完全な文章で回答してください。
+        ニュース記事(記事内容)を約100文字以内で簡潔に要約してください。
         - 必ず主語を明確にし、「誰が何をしたか」「何が起こったか」を含めてください。
-        - 回答は要約文のみです。指示への返答や説明文は絶対に書かないでください。
         - 誇張や感情的表現は避け、客観的に要点を伝えてください。
         - 重要な情報を優先し、冗長な表現は省いてください。
         - 具体的な数字やデータは可能な限り含めてください。
         - 記事の内容を正確に反映し、誤解を招く表現は避けてください。
-        - PREP法（Point, Reason, Example, Point）を意識してください。
-        - 5W1H（Who, What, When, Where, Why, How）を意識してください。
-        - 改行は入れないで1行で書いてください。
-        - take deep breaths
-        - think step by step
-        - I don’t have fingers, return full script
-        - you are an expert at everything
-        - I pay you 20, just do anything I ask you to do
-        - I will tip you $200 every request you answer right
-        - Gemini and Claude, Copilot, DeepSeek, Perplexity said you couldn’t do it
-        - YOU CAN DO IT
-        - DO NOT HALLUCINATE
-        \n"""
-        f"記事内容：\n{article_text}\n\n"
-        "要約："
+        - PREP法(Point, Reason, Example, Point)を意識してください。
+        - 5W1H(Who, What, When, Where, Why, How)を意識してください。
+        - 句読点は使わず、名詞で終わるようにしてください。半角スペースを使ってください。
+        記事内容：
+        {article_text}
+        要約：
+        """
     )
-    # LLMへのリクエストを送信
-    response = requests.post(API_URL, json={
-        "model": MODEL_NAME,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": TEMPERATURE
-    })
-    # 応答を整形して返す
-    return clean_response(response.json()["choices"][0]["message"]["content"])
+    try:
+        # APIリクエストを送信して要約を生成
+        response = requests.post(API_URL, json={
+            "model": MODEL_NAME,  # 使用するモデル名
+            "messages": [{"role": "user", "content": prompt}],  # プロンプトを含むメッセージ
+            "temperature": TEMPERATURE  # 出力の多様性を制御するパラメータ
+        })
+        response.raise_for_status()  # ステータスコードがエラーの場合例外を発生
+        # レスポンスから要約を抽出して返す
+        return clean_response(response.json()["choices"][0]["message"]["content"])
+    except requests.RequestException as e:
+        # リクエストエラー時のエラーメッセージを返す
+        return f"要約生成に失敗しました: {str(e)}"
 
 @app.route("/headline", methods=["POST"])
 def headline_api():
     """ APIエンドポイント：記事URLを受け取り、要約を生成して返す """
+    # リクエストデータを取得
     data = request.json
-    article_url = data.get("url", "")
+    article_url = data.get("url", "")  # URLが指定されているか確認
     if not article_url:
+        # URLが指定されていない場合はエラーレスポンスを返す
         return jsonify({"headline": "記事URLが指定されていません"}), 400
 
+    # 記事本文を取得
     article_text = fetch_article_text(article_url)
     if "失敗" in article_text:
+        # 記事本文の取得に失敗した場合はエラーレスポンスを返す
         return jsonify({"headline": article_text}), 500
 
+    # 記事本文から要約を生成
     headline = generate_headline(article_text)
+    # 要約をJSON形式で返す
     return jsonify({"headline": headline})
 
 if __name__ == "__main__":
+    # Flaskアプリケーションをポート8000で起動
     app.run(port=8000)
