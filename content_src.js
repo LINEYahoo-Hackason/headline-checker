@@ -8,7 +8,7 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
   let previousReferenceCount = -1; // 前回のリンク数を追跡 (-1は初期値)
 
   // 記事URLをバックエンドに送信し、見出しを取得
-  function fetchHeadline(articleUrl) {
+  function fetchHeadline(articleUrl, reference) {
     fetch("http://localhost:8000/headline", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -17,12 +17,50 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
       .then((res) => res.json()) // レスポンスをJSONとして解析
       .then((data) => {
         if (data.judge) {
-          alert("✅ 見出しは適切です。");
+          console.log("✅ 見出しは適切です。");
         } else {
-          alert(`💡 AIによる新しい見出し提案:\n${data.headline}`);
+          // 親<li>要素を取得
+          const parentLi = reference.closest("li");
+          if (!parentLi) {
+            console.error("親<li>要素が見つかりませんでした。");
+            return;
+          }
+
+          // 提案された見出しをオーバーレイ表示
+          const overlay = document.createElement("div");
+          overlay.innerText = `💡 ${data.headline}`;
+          overlay.style.position = "absolute";
+          overlay.style.top = "0";
+          overlay.style.left = "0";
+          overlay.style.width = "100%";
+          overlay.style.height = "100%";
+          overlay.style.backgroundColor = "rgba(230, 244, 234, 0.6)"; // 背景色を薄い緑に変更
+          overlay.style.color = "#000"; // テキスト色を黒に変更
+          overlay.style.display = "flex";
+          overlay.style.alignItems = "center";
+          overlay.style.justifyContent = "center";
+          overlay.style.fontSize = "14px";
+          overlay.style.border = "1px solid #4a8a57"; // 緑色の枠線を追加
+          overlay.style.borderRadius = "5px";
+          overlay.style.pointerEvents = "none"; // クリックを無効化
+          overlay.style.zIndex = "1000";
+          overlay.style.overflow = "hidden"; // 幅を超えた場合に隠す
+          overlay.style.padding = "4px"; // 内側の余白を追加
+          overlay.style.boxShadow = "0px 2px 4px rgba(0, 0, 0, 0.1)"; // シャドウを追加
+
+          // 親<li>要素にオーバーレイを追加
+          parentLi.style.position = "relative"; // 親要素を相対位置に設定
+          parentLi.appendChild(overlay);
+
+          // // 数秒後にオーバーレイを削除
+          // setTimeout(() => {
+          //   if (overlay.parentNode) {
+          //     overlay.parentNode.removeChild(overlay);
+          //   }
+          // }, 3000); // 3秒後に削除
         }
       })
-      .catch(() => alert("⚠️ 記事の取得に失敗しました。"));
+      .catch(() => console.error("⚠️ 記事の取得に失敗しました。"));
   }
 
   // トップページ専用：URLが https://www.goo.ne.jp/ で始まる場合のみ実行
@@ -37,15 +75,16 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
     tooltip.className = "tooltip";
     tooltip.innerText = content;
     tooltip.style.position = "absolute";
-    tooltip.style.backgroundColor = "#ffffff";
-    tooltip.style.color = "#000000";
-    tooltip.style.padding = "4px 20px";
-    tooltip.style.border = "2px solid #4a8a57";
-    tooltip.style.borderRadius = "4px";
-    tooltip.style.fontSize = "12px";
+    tooltip.style.backgroundColor = "#4a8a57"; // 背景色を緑に変更
+    tooltip.style.color = "#ffffff"; // テキスト色を白に変更
+    tooltip.style.padding = "6px 12px"; // パディングを調整
+    tooltip.style.border = "none"; // ボーダーを削除
+    tooltip.style.borderRadius = "4px"; // 丸みを追加
+    tooltip.style.fontSize = "14px"; // フォントサイズを調整
     tooltip.style.zIndex = "1000";
     tooltip.style.whiteSpace = "nowrap";
     tooltip.style.cursor = "pointer"; // クリック可能にする
+    tooltip.style.boxShadow = "0px 4px 6px rgba(0, 0, 0, 0.1)"; // シャドウを追加
 
     // クリックイベントを追加
     tooltip.addEventListener("click", (e) => {
@@ -65,7 +104,7 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
 
       if (articleUrl) {
         console.log(`記事URL: ${articleUrl}`); // デバッグ用ログ
-        fetchHeadline(articleUrl); // URLが存在する場合、見出しを取得
+        fetchHeadline(articleUrl, reference); // URLが存在する場合、見出しを取得
       } else {
         console.error("記事URLが見つかりませんでした。");
         console.log("デバッグ情報:", reference.outerHTML); // referenceの内容をログに出力
@@ -93,7 +132,7 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
   function showTooltip(reference, tooltip) {
     computePosition(reference, tooltip, {
       placement: "right", // ツールチップを右側に配置
-      middleware: [flip()], // ビューポート内に収める
+      middleware: [shift(), flip()],
     }).then(({ x, y }) => {
       Object.assign(tooltip.style, {
         left: `${x}px`,
