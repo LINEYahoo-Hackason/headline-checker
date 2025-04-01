@@ -78,7 +78,7 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
     tooltip.style.backgroundColor = "#4a8a57"; // 背景色を緑に変更
     tooltip.style.color = "#ffffff"; // テキスト色を白に変更
     tooltip.style.padding = "6px 12px"; // パディングを調整
-    tooltip.style.border = "none"; // ボーダーを削除
+    // tooltip.style.border = "none"; // ボーダーを削除
     tooltip.style.borderRadius = "4px"; // 丸みを追加
     tooltip.style.fontSize = "14px"; // フォントサイズを調整
     tooltip.style.zIndex = "1000";
@@ -171,7 +171,7 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
 
         // マウスオーバー時にツールチップを表示
         reference.addEventListener("mouseenter", () => {
-          const content = "AI見出し"; // ツールチップの内容
+          const content = "\u00A0"; // ツールチップの内容 （空白文字）
 
           // 既存のツールチップを削除
           if (currentTooltip) {
