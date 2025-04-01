@@ -5,6 +5,7 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
 
   let currentTooltip = null; // 現在表示されているツールチップを追跡
   let isTooltipHovered = false; // ツールチップがホバーされているかを追跡
+  let previousReferenceCount = -1; // 前回のリンク数を追跡 (-1は初期値)
 
   // 記事URLをバックエンドに送信し、見出しを取得
   function fetchHeadline(articleUrl) {
@@ -108,12 +109,22 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
     }
   }
 
+  // 見出しリンク数をログに表示する関数
+  function logReferenceCount(references) {
+    const currentCount = references.length;
+    if (currentCount !== previousReferenceCount) {
+      console.log(`🟡 見出しリンク数：${currentCount} 件`);
+      previousReferenceCount = currentCount; // 前回のリンク数を更新
+    }
+  }
+
   // ツールチップを設定する関数
   function setupTooltips() {
     const references = document.querySelectorAll(
       "a[id*='pcnews'], span.module-ranking-word, span.module-caption-text"
     ); // 見出し要素を取得
-    console.log(`🟡 見出しリンク数：${references.length} 件`); // 見出しの数をログに表示
+
+    logReferenceCount(references); // リンク数をログに表示
 
     references.forEach((reference) => {
       if (!reference.dataset.tooltipInitialized) {
