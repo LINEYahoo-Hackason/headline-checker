@@ -40,7 +40,7 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
           overlay.style.alignItems = "center";
           overlay.style.justifyContent = "center";
           overlay.style.fontSize = "14px";
-          overlay.style.border = "1px solid #4a8a57"; // 緑色の枠線を追加
+          overlay.style.boxShadow = "0 0 0 1px #4a8a57"; // 緑色のシャドウを追加 緑色の枠線を追加
           overlay.style.borderRadius = "5px";
           overlay.style.pointerEvents = "none"; // クリックを無効化
           overlay.style.zIndex = "1000";
@@ -78,7 +78,7 @@ import { computePosition, shift , flip } from "@floating-ui/dom";
     tooltip.style.backgroundColor = "#4a8a57"; // 背景色を緑に変更
     tooltip.style.color = "#ffffff"; // テキスト色を白に変更
     tooltip.style.padding = "6px 12px"; // パディングを調整
-    // tooltip.style.border = "none"; // ボーダーを削除
+    tooltip.style.boxShadow = "0 0 0 1px rgb(0, 0, 0)";
     tooltip.style.borderRadius = "4px"; // 丸みを追加
     tooltip.style.fontSize = "14px"; // フォントサイズを調整
     tooltip.style.zIndex = "1000";
