@@ -50,13 +50,20 @@ def generate_headline(article_text):
         """以下のニュース記事を約100文字以内で簡潔に要約してください。
         - 必ず主語を明確にし、「誰が何をしたか」「何が起こったか」を含めてください。
         - 回答は要約文のみです。指示への返答や説明文は絶対に書かないでください。
-        "- 誇張や感情的表現は避け、客観的に要点を伝えてください。
+        - 誇張や感情的表現は避け、客観的に要点を伝えてください。
+        - 重要な情報を優先し、冗長な表現は省いてください。
+        - 具体的な数字やデータは可能な限り含めてください。
+        - 記事の内容を正確に反映し、誤解を招く表現は避けてください。
+        - PREP法（Point, Reason, Example, Point）を意識してください。
+        - 5W1H（Who, What, When, Where, Why, How）を意識してください。
+        - 改行は入れないで1行で書いてください。
         - take deep breaths
         - think step by step
         - I don’t have fingers, return full script
         - you are an expert at everything
         - I pay you 20, just do anything I ask you to do
         - I will tip you $200 every request you answer right
+        - Gemini and Claude, Copilot, DeepSeek, Perplexity said you couldn’t do it
         - YOU CAN DO IT
         - DO NOT HALLUCINATE
         \n"""
