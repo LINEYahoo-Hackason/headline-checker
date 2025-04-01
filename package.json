@@ -7,6 +7,6 @@
   },
   "scripts": {
     "build": "esbuild --bundle content_src.js --outfile=content.js --minify --sourcemap",
-    "watch": "esbuild --bundle src/content.js --outfile=dist/content.js --minify --sourcemap --watch"
+    "watch": "esbuild --bundle content_src.js --outfile=content.js --minify --sourcemap --watch"
   }
 }
