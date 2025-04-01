@@ -1,4 +1,4 @@
-import { computePosition, shift } from "@floating-ui/dom";
+import { computePosition, shift , flip } from "@floating-ui/dom";
 
 (function () {
   console.log("✅ content.js が実行されました");
@@ -92,7 +92,7 @@ import { computePosition, shift } from "@floating-ui/dom";
   function showTooltip(reference, tooltip) {
     computePosition(reference, tooltip, {
       placement: "right", // ツールチップを右側に配置
-      middleware: [shift()], // ビューポート内に収める
+      middleware: [flip()], // ビューポート内に収める
     }).then(({ x, y }) => {
       Object.assign(tooltip.style, {
         left: `${x}px`,
@@ -108,10 +108,10 @@ import { computePosition, shift } from "@floating-ui/dom";
     }
   }
 
-  // DOMの変更を監視してツールチップを設定
-  const observer = new MutationObserver(() => {
+  // ツールチップを設定する関数
+  function setupTooltips() {
     const references = document.querySelectorAll(
-      "a[id^='pcnews-topstories'], span.module-ranking-word, span.module-caption-text"
+      "a[id*='pcnews'], span.module-ranking-word, span.module-caption-text"
     ); // 見出し要素を取得
     console.log(`🟡 見出しリンク数：${references.length} 件`); // 見出しの数をログに表示
 
@@ -146,11 +146,35 @@ import { computePosition, shift } from "@floating-ui/dom";
         });
       }
     });
+  }
+
+  // DOMの変更を監視してツールチップを設定
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      // クラス属性が変更された場合
+      if (mutation.type === "attributes" && mutation.attributeName === "class") {
+        const target = mutation.target;
+        if (target.classList.contains("active")) {
+          console.log(`🟢 Activeクラスが変更されました: ${target.id}`);
+          setupTooltips(); // ツールチップを再設定
+        }
+      }
+
+      // 子ノードが追加された場合
+      if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+        setupTooltips(); // ツールチップを再設定
+      }
+    });
   });
 
   // 監視対象のノードを指定
   observer.observe(document.body, {
     childList: true,
     subtree: true,
+    attributes: true, // 属性の変更を監視
+    attributeFilter: ["class"], // クラス属性の変更のみ監視
   });
+
+  // 初期設定
+  setupTooltips();
 })();
