@@ -20,7 +20,7 @@ chrome://extensions/
 
    - Python 3.13.2 をインストールし、必要なライブラリをインストールします。
      ```bash
-     pip install flask flask-cors requests beautifulsoup4
+     pip install -r requirements.txt
      ```
    - [app.py](http://_vscodecontentref_/1) を実行してバックエンドサーバーを起動します。
      ```bash
