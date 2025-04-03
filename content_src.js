@@ -18,6 +18,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
   // URLキャッシュ用のオブジェクト
   const urlCache = new Map();
+  const loadingCache = new Set(); // loading状態を追跡するキャッシュ
 
   // 記事URLをバックエンドに送信し、見出しを取得
   function fetchHeadline(articleUrl, reference, tooltip) {
@@ -126,30 +127,37 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     tooltip.style.pointerEvents = "all"; // クリックイベントを有効化
 
     // 記事URLがキャッシュに存在する場合、状態を「close」に設定
-    const articleUrl =
-      reference.tagName === "A"
-        ? reference.href
-        : reference.querySelector("a")?.href;
-    if (articleUrl && urlCache.has(articleUrl)) {
-      updateButtonState(tooltip, "close");
+
+    // `<a>`タグを取得
+    let articleUrl = null;
+    if (reference.tagName === "A") {
+      articleUrl = reference.href; // referenceが<a>タグの場合
+    } else if (reference.querySelector("a")) {
+      articleUrl = reference.querySelector("a").href; // 子要素に<a>タグがある場合
     } else {
-      updateButtonState(tooltip, "default");
+      const parentLink = reference.closest("a"); // 親要素に<a>タグがあるか探索
+      if (parentLink) {
+        articleUrl = parentLink.href;
+      }
+    }
+
+    // キャッシュの状態に応じてボタンの状態を設定
+    if (articleUrl) {
+      if (loadingCache.has(articleUrl)) {
+        updateButtonState(tooltip, "loading"); // ローディング状態を表示
+      } else if (urlCache.has(articleUrl)) {
+        updateButtonState(tooltip, "close"); // 閉じる状態を表示
+      } else {
+        updateButtonState(tooltip, "default"); // デフォルト状態を表示
+      }
+    } else {
+      updateButtonState(tooltip, "default"); // URLがない場合はデフォルト状態
     }
 
     // クリックイベントを追加
     tooltip.addEventListener("click", (e) => {
       e.stopPropagation(); // イベントのバブリングを防ぐ
       e.preventDefault(); // デフォルトの動作を防ぐ
-
-      if (tooltip.dataset.state === "close") {
-        // オーバーレイを削除
-        removeOverlay(reference);
-        updateButtonState(tooltip, "default"); // ボタンを無地に戻す
-        return;
-      }
-
-      // ローディング状態に変更
-      updateButtonState(tooltip, "loading");
 
       // `<a>`タグを取得
       let articleUrl = null;
@@ -163,6 +171,24 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
           articleUrl = parentLink.href;
         }
       }
+
+      tooltip.dataset.url = articleUrl; // 記事URLをデータ属性に保存
+
+      if (tooltip.dataset.state === "close") {
+        // オーバーレイを削除
+        removeOverlay(reference);
+        updateButtonState(tooltip, "default"); // ボタンを無地に戻す
+        return;
+      }
+
+      if (loadingCache.has(articleUrl)) {
+        console.log("⚠️ 現在ローディング中です。");
+        return; // すでにローディング中の場合は何もしない
+      }
+
+      // ローディング状態に変更
+      updateButtonState(tooltip, "loading");
+      loadingCache.add(articleUrl); // ローディング状態をキャッシュ
 
       if (articleUrl) {
         console.log(`記事URL: ${articleUrl}`); // デバッグ用ログ
@@ -186,10 +212,12 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
     // ツールチップからマウスが離れたときの処理
     tooltip.addEventListener("mouseleave", () => {
-      isTooltipHovered = false;
-      if (!isTooltipHovered) {
+      // loading状態でない場合のみツールチップを削除
+      if (!isTooltipHovered && tooltip.dataset.state !== "loading") {
         removeTooltip(tooltip);
         currentTooltip = null;
+      } else {
+        isTooltipHovered = false;
       }
     });
 
@@ -216,11 +244,13 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       tooltip.style.backgroundImage = "none";
       tooltip.dataset.state = "default"; // デフォルト状態を設定
       tooltip.classList.remove("loading"); // ローディング状態を解除
+      loadingCache.delete(tooltip.dataset.url); // loading状態を解除
     } else if (state === "close") {
       tooltip.innerText = "✖"; // ✖︎印
       tooltip.style.backgroundImage = "none";
       tooltip.dataset.state = "close"; // 閉じる状態を設定
       tooltip.classList.remove("loading"); // ローディング状態を解除
+      loadingCache.delete(tooltip.dataset.url); // loading状態を解除
     } else if (state === "loading") {
       // tooltip.innerText = "\u00A0"; // テキストを空にする
       tooltip.innerText = "loading"; // テキストを空にする
@@ -230,6 +260,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       tooltip.style.backgroundPosition = "center";
       tooltip.dataset.state = "loading"; // ローディング状態を設定
       tooltip.classList.add("loading"); // ローディング状態を追加
+      loadingCache.add(tooltip.dataset.url); // loading状態をキャッシュ
     }
   }
 
@@ -279,9 +310,10 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
           document.body.appendChild(tooltip);
           showTooltip(reference, tooltip);
-          const button = document.querySelector(
-            '[data-popup-button="headline-check-open-popup-button"]'
-          );
+
+          // const button = document.querySelector(
+          //   '[data-popup-button="headline-check-open-popup-button"]'
+          // );
           // if (button) {
           //   button.addEventListener("click", () => {
           //     // バックグラウンドスクリプトにメッセージを送信
@@ -293,6 +325,24 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
           //     );
           //   });
           // }
+
+          // ローディング状態が残っている場合は解除
+          // `<a>`タグを取得
+          let articleUrl = null;
+          if (reference.tagName === "A") {
+            articleUrl = reference.href; // referenceが<a>タグの場合
+          } else if (reference.querySelector("a")) {
+            articleUrl = reference.querySelector("a").href; // 子要素に<a>タグがある場合
+          } else {
+            const parentLink = reference.closest("a"); // 親要素に<a>タグがあるか探索
+            if (parentLink) {
+              articleUrl = parentLink.href;
+            }
+          }
+          if (articleUrl && loadingCache.has(articleUrl)) {
+            updateButtonState(tooltip, "default");
+            loadingCache.delete(articleUrl);
+          }
         });
 
         // マウスアウト時にツールチップを削除
