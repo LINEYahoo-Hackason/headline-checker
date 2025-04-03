@@ -21,29 +21,36 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
   // 記事URLをバックエンドに送信し、見出しを取得
   function fetchHeadline(articleUrl, reference, tooltip) {
-    // キャッシュにURLが存在する場合はキャッシュを使用
-    if (urlCache.has(articleUrl)) {
-      const cachedData = urlCache.get(articleUrl);
-      displayOverlay(cachedData, reference, tooltip);
-      updateButtonState(tooltip, "close");
-      return;
-    }
-
-    fetch("http://localhost:8000/headline", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: articleUrl }), // 記事URLをJSON形式で送信
-    })
-      .then((res) => res.json()) // レスポンスをJSONとして解析
-      .then((data) => {
-        // キャッシュに保存
-        urlCache.set(articleUrl, data);
-
-        // 見出しを表示
-        displayOverlay(data, reference, tooltip);
+    return new Promise((resolve, reject) => {
+      // キャッシュにURLが存在する場合はキャッシュを使用
+      if (urlCache.has(articleUrl)) {
+        const cachedData = urlCache.get(articleUrl);
+        displayOverlay(cachedData, reference, tooltip);
         updateButtonState(tooltip, "close");
+        resolve(); // 処理が成功したことを通知
+        return;
+      }
+
+      fetch("http://localhost:8000/headline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: articleUrl }), // 記事URLをJSON形式で送信
       })
-      .catch(() => console.error("⚠️ 記事の取得に失敗しました。"));
+        .then((res) => res.json()) // レスポンスをJSONとして解析
+        .then((data) => {
+          // キャッシュに保存
+          urlCache.set(articleUrl, data);
+
+          // 見出しを表示
+          displayOverlay(data, reference, tooltip);
+          updateButtonState(tooltip, "close");
+          resolve(); // 処理が成功したことを通知
+        })
+        .catch((error) => {
+          console.error("⚠️ 記事の取得に失敗しました。", error);
+          reject(error); // エラーを通知
+        });
+    });
   }
 
   function removeOverlay(reference) {
@@ -141,6 +148,9 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
         return;
       }
 
+      // ローディング状態に変更
+      updateButtonState(tooltip, "loading");
+
       // `<a>`タグを取得
       let articleUrl = null;
       if (reference.tagName === "A") {
@@ -156,10 +166,16 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
       if (articleUrl) {
         console.log(`記事URL: ${articleUrl}`); // デバッグ用ログ
-        fetchHeadline(articleUrl, reference, tooltip); // URLが存在する場合、見出しを取得
+        fetchHeadline(articleUrl, reference, tooltip).finally(() => {
+          // 処理が完了したらローディング状態を解除
+          if (tooltip.dataset.state === "loading") {
+            updateButtonState(tooltip, "default");
+          }
+        });
       } else {
         console.error("記事URLが見つかりませんでした。");
         console.log("デバッグ情報:", reference.outerHTML); // referenceの内容をログに出力
+        updateButtonState(tooltip, "default"); // エラー時もローディング解除
       }
     });
 
@@ -199,10 +215,21 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       tooltip.innerText = "\u00A0"; // 無地
       tooltip.style.backgroundImage = "none";
       tooltip.dataset.state = "default"; // デフォルト状態を設定
+      tooltip.classList.remove("loading"); // ローディング状態を解除
     } else if (state === "close") {
       tooltip.innerText = "✖"; // ✖︎印
       tooltip.style.backgroundImage = "none";
       tooltip.dataset.state = "close"; // 閉じる状態を設定
+      tooltip.classList.remove("loading"); // ローディング状態を解除
+    } else if (state === "loading") {
+      // tooltip.innerText = "\u00A0"; // テキストを空にする
+      tooltip.innerText = "loading"; // テキストを空にする
+      tooltip.style.backgroundImage =
+        'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%23ffffff"><circle cx="50" cy="50" r="40" stroke="%23ffffff" stroke-width="10" fill="none" stroke-dasharray="200" stroke-dashoffset="0"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="1s" repeatCount="indefinite"/></circle></svg>\')'; // ローディングアニメーション
+      tooltip.style.backgroundRepeat = "no-repeat";
+      tooltip.style.backgroundPosition = "center";
+      tooltip.dataset.state = "loading"; // ローディング状態を設定
+      tooltip.classList.add("loading"); // ローディング状態を追加
     }
   }
 
