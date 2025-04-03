@@ -257,6 +257,8 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       return;
     }
 
+    const parentWidth = parentLi.offsetWidth; // 親<li>要素の幅を取得
+
     const overlay = document.createElement("div");
     overlay.className = "overlay"; // クラス名を追加
     overlay.innerText = `💡 ${data.headline}`;
@@ -265,8 +267,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       bottom: "100%", // 吹き出しを親要素の上に配置
       left: "50%",
       transform: "translateX(-50%)", // 中央揃え
-      width: "auto",
-      maxWidth: "300px", // 最大幅を設定
+      width: `${parentWidth}px`, // 親<li>要素の幅を適用
       backgroundColor: "rgba(230, 244, 234, 0.6)", // 背景色を薄い緑に変更
       color: "#000", // テキスト色を黒に変更
       display: "flex",
