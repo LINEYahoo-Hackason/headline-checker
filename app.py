@@ -75,25 +75,41 @@ def clean_response(response_text):
         response_text = response_text.replace(phrase, "").strip()
     # 複数行がある場合、最初の行のみを返す
     return response_text.split("\n")[0].strip().split("。")[0].strip()
+    
 
 def generate_headline(article_text):
     """ ニュース記事から要約を生成 """
     # プロンプトの定義：ニュース記事を要約するための指示を含む
+    # prompt = (
+    #     f"""
+    #     あなたは優秀なニュース記事要約AIです。
+    #     回答は要約文のみです。指示への返答や説明文は絶対に書かないでください。
+    #     記事内容を必ず16字以内で確実に要約して必ず16字以内で出力してください。
+    #     誇張や感情的表現は避け、客観的に要点を伝えてください。
+    #     重要な情報を優先し、冗長な表現は省いてください。
+    #     記事の内容を正確に反映し、誤解を招く表現は避けてください。
+    #     PREP法(Point, Reason, Example, Point)のPointを意識してください。
+    #     必ず主語を含めてください。
+    #     5W1H(Who, What, When, Where, Why, How)のWho, Whatを意識してください。
+    #     記事内容：
+    #     {article_text}
+    #     要約：
+    #     """
+    # )
     prompt = (
-        f"""
-        あなたは優秀なニュース記事要約AIです。
-        回答は要約文のみです。指示への返答や説明文は絶対に書かないでください。
-        記事内容を必ず16字以内で確実に要約して必ず16字以内で出力してください。
-        誇張や感情的表現は避け、客観的に要点を伝えてください。
-        重要な情報を優先し、冗長な表現は省いてください。
-        記事の内容を正確に反映し、誤解を招く表現は避けてください。
-        PREP法(Point, Reason, Example, Point)のPointを意識してください。
-        必ず主語を含めてください。
-        5W1H(Who, What, When, Where, Why, How)のWho, Whatを意識してください。
-        記事内容：
-        {article_text}
-        要約：
-        """
+        "あなたは優秀なライターです。以下のニュース記事に基づいて次のタスクを実行してください：\n"
+        "1. 元の見出しが記事内容に適切かどうかを判定してください。\n"
+        "2. 記事内容に基づいて新しい見出しを生成してください。\n"
+        "- 重要な情報を含めてください。\n"
+        "- 読者の興味を引くような表現を心がけてください。\n"
+        "- 虚偽の内容を含めないでください。\n"
+        "- 見出しは20字程度にしてください\n"
+        "- 単語ではなく、文で出力してください\n\n"
+        f"元の見出し: {original_headline}\n"
+        f"記事内容：\n{article_text}\n\n"
+        "出力形式:\n"
+        "適切性: (適切 または 不適切)\n"
+        "新しい見出し: (生成された見出し)"
     )
     try:
         # APIリクエストを送信して要約を生成（タイムアウトを設定）
@@ -108,7 +124,24 @@ def generate_headline(article_text):
         )
         response.raise_for_status()  # ステータスコードがエラーの場合例外を発生
         # レスポンスから要約を抽出して返す
-        return clean_response(response.json()["choices"][0]["message"]["content"])
+        ai_response = response.json()["choices"][0]["message"]["content"]
+
+        # 適切性と新しい見出しを抽出
+        lines = ai_response.split("\n")
+        is_relevant = None
+        new_headline = None
+
+        for line in lines:
+            if line.startswith("適切性:"):
+                is_relevant = line.replace("適切性:", "").strip()
+            elif line.startswith("新しい見出し:"):
+                new_headline = line.replace("新しい見出し:", "").strip()
+
+        # 結果を返す
+        return {
+            "is_relevant": is_relevant,
+            "new_headline": new_headline
+        }
     except requests.Timeout:
         # タイムアウト時のエラーメッセージを返す
         return "要約生成に失敗しました: リクエストがタイムアウトしました"
@@ -121,11 +154,11 @@ def process_requests():
     while True:
         try:
             # キューからリクエストデータを取得
-            article_text, result_queue = request_queue.get()
+            article_text, original_headline, result_queue = request_queue.get()
             logging.info("リクエスト処理を開始します")
             
             # 要約を生成
-            headline = generate_headline(article_text)
+            headline = generate_headline(article_text, original_headline)
             
             # 結果を返す
             result_queue.put(headline)
@@ -144,9 +177,16 @@ def headline_api():
     # リクエストデータを取得
     data = request.json
     article_url = data.get("url", "")  # URLが指定されているか確認
+    original_headline = data.get("original_headline", "")
+    print(f"受け取った元の見出し: {original_headline}")
+    
     if not article_url:
         # URLが指定されていない場合はエラーレスポンスを返す
         return jsonify({"headline": "記事URLが指定されていません"}), 400
+    
+    if not original_headline:
+        # original_headlineが指定されていない場合はエラーレスポンスを返す
+        return jsonify({"headline": "元の見出しが指定されていません"}), 400
 
     # 記事本文を取得
     article_text = fetch_article_text(article_url)
@@ -158,13 +198,13 @@ def headline_api():
     result_queue = queue.Queue()
 
     # リクエストをキューに追加
-    request_queue.put((article_text, result_queue))
+    request_queue.put((article_text, original_headline, result_queue))
 
     # 結果を待機
-    headline = result_queue.get()
+    result = result_queue.get()
 
     # 要約をJSON形式で返す
-    return jsonify({"headline": headline})
+    return jsonify({"headline": result["headline"], "judge": result["is_relevant"]})
 
 if __name__ == "__main__":
     # Flaskアプリケーションをポート8000で起動

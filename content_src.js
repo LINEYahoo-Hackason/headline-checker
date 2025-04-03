@@ -17,11 +17,11 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
   let previousReferenceCount = -1; // 前回のリンク数を追跡 (-1は初期値)
 
   // 記事URLをバックエンドに送信し、見出しを取得
-  function fetchHeadline(articleUrl, reference) {
+  function fetchHeadline(articleUrl, reference, articleText) {
     fetch("http://localhost:8000/headline", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: articleUrl }), // 記事URLをJSON形式で送信
+      body: JSON.stringify({ url: articleUrl, original_headline: articleText }), // 記事URLをJSON形式で送信
     })
       .then((res) => res.json()) // レスポンスをJSONとして解析
       .then((data) => {
@@ -106,20 +106,26 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
       // `<a>`タグを取得
       let articleUrl = null;
+      let articleText = null;
+
       if (reference.tagName === "A") {
         articleUrl = reference.href; // referenceが<a>タグの場合
+        articleText = reference.innerText; // <a>タグのテキストを取得
       } else if (reference.querySelector("a")) {
         articleUrl = reference.querySelector("a").href; // 子要素に<a>タグがある場合
+        articleText = reference.querySelector("a").innerText; // <a>タグのテキストを取得
       } else {
         const parentLink = reference.closest("a"); // 親要素に<a>タグがあるか探索
         if (parentLink) {
           articleUrl = parentLink.href;
+          articleText = parentLink.innerText; // 親要素の<a>タグのテキストを取得
         }
       }
 
       if (articleUrl) {
         console.log(`記事URL: ${articleUrl}`); // デバッグ用ログ
-        fetchHeadline(articleUrl, reference); // URLが存在する場合、見出しを取得
+        console.log(`記事テキスト: ${articleText}`); // デバッグ用ログ
+        fetchHeadline(articleUrl, reference, articleText); // URLが存在する場合、見出しを取得
       } else {
         console.error("記事URLが見つかりませんでした。");
         console.log("デバッグ情報:", reference.outerHTML); // referenceの内容をログに出力
