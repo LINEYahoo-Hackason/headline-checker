@@ -46,6 +46,13 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       .catch(() => console.error("⚠️ 記事の取得に失敗しました。"));
   }
 
+  function removeOverlay(reference) {
+    const overlay = reference.querySelector(".overlay");
+    if (overlay) {
+      overlay.remove();
+    }
+  }
+
   // 見出しをオーバーレイとして表示する関数
   function displayOverlay(data, reference, tooltip) {
     if (!data.judge) {
@@ -56,6 +63,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       }
 
       const overlay = document.createElement("div");
+      overlay.className = "overlay"; // クラス名を追加
       overlay.innerText = `💡 ${data.headline}`;
       overlay.style.position = "absolute";
       overlay.style.top = "0";
@@ -110,18 +118,28 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     tooltip.dataset.popupButton = "headline-check-open-popup-button"; // データ属性を追加
     tooltip.style.pointerEvents = "all"; // クリックイベントを有効化
 
-  // 記事URLがキャッシュに存在する場合、状態を「close」に設定
-  const articleUrl = reference.tagName === "A" ? reference.href : reference.querySelector("a")?.href;
-  if (articleUrl && urlCache.has(articleUrl)) {
-    updateButtonState(tooltip, "close");
-  } else {
-    updateButtonState(tooltip, "default");
-  }
+    // 記事URLがキャッシュに存在する場合、状態を「close」に設定
+    const articleUrl =
+      reference.tagName === "A"
+        ? reference.href
+        : reference.querySelector("a")?.href;
+    if (articleUrl && urlCache.has(articleUrl)) {
+      updateButtonState(tooltip, "close");
+    } else {
+      updateButtonState(tooltip, "default");
+    }
 
     // クリックイベントを追加
     tooltip.addEventListener("click", (e) => {
       e.stopPropagation(); // イベントのバブリングを防ぐ
       e.preventDefault(); // デフォルトの動作を防ぐ
+
+      if (tooltip.dataset.state === "close") {
+        // オーバーレイを削除
+        removeOverlay(reference);
+        updateButtonState(tooltip, "default"); // ボタンを無地に戻す
+        return;
+      }
 
       // `<a>`タグを取得
       let articleUrl = null;
@@ -180,9 +198,11 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     if (state === "default") {
       tooltip.innerText = "\u00A0"; // 無地
       tooltip.style.backgroundImage = "none";
+      tooltip.dataset.state = "default"; // デフォルト状態を設定
     } else if (state === "close") {
       tooltip.innerText = "✖"; // ✖︎印
       tooltip.style.backgroundImage = "none";
+      tooltip.dataset.state = "close"; // 閉じる状態を設定
     }
   }
 
