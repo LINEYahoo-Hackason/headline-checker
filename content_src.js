@@ -16,8 +16,19 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
   let isTooltipHovered = false; // ツールチップがホバーされているかを追跡
   let previousReferenceCount = -1; // 前回のリンク数を追跡 (-1は初期値)
 
+  // URLキャッシュ用のオブジェクト
+  const urlCache = new Map();
+
   // 記事URLをバックエンドに送信し、見出しを取得
-  function fetchHeadline(articleUrl, reference) {
+  function fetchHeadline(articleUrl, reference, tooltip) {
+    // キャッシュにURLが存在する場合はキャッシュを使用
+    if (urlCache.has(articleUrl)) {
+      const cachedData = urlCache.get(articleUrl);
+      displayOverlay(cachedData, reference, tooltip);
+      updateButtonState(tooltip, "close");
+      return;
+    }
+
     fetch("http://localhost:8000/headline", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -25,51 +36,51 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     })
       .then((res) => res.json()) // レスポンスをJSONとして解析
       .then((data) => {
-        if (data.judge) {
-          console.log("✅ 見出しは適切です。");
-        } else {
-          // 親<li>要素を取得
-          const parentLi = reference.closest("li");
-          if (!parentLi) {
-            console.error("親<li>要素が見つかりませんでした。");
-            return;
-          }
+        // キャッシュに保存
+        urlCache.set(articleUrl, data);
 
-          // 提案された見出しをオーバーレイ表示
-          const overlay = document.createElement("div");
-          overlay.innerText = `💡 ${data.headline}`;
-          overlay.style.position = "absolute";
-          overlay.style.top = "0";
-          overlay.style.left = "0";
-          overlay.style.width = "100%";
-          overlay.style.height = "100%";
-          overlay.style.backgroundColor = "rgba(230, 244, 234, 0.6)"; // 背景色を薄い緑に変更
-          overlay.style.color = "#000"; // テキスト色を黒に変更
-          overlay.style.display = "flex";
-          overlay.style.alignItems = "center";
-          overlay.style.justifyContent = "center";
-          overlay.style.fontSize = "14px";
-          overlay.style.boxShadow = "0 0 0 1px #4a8a57"; // 緑色のシャドウを追加 緑色の枠線を追加
-          overlay.style.borderRadius = "5px";
-          overlay.style.pointerEvents = "none"; // クリックを無効化
-          overlay.style.zIndex = "1000";
-          overlay.style.overflow = "hidden"; // 幅を超えた場合に隠す
-          overlay.style.padding = "4px"; // 内側の余白を追加
-          overlay.style.boxShadow = "0px 2px 4px rgba(0, 0, 0, 0.1)"; // シャドウを追加
-
-          // 親<li>要素にオーバーレイを追加
-          parentLi.style.position = "relative"; // 親要素を相対位置に設定
-          parentLi.appendChild(overlay);
-
-          // // 数秒後にオーバーレイを削除
-          // setTimeout(() => {
-          //   if (overlay.parentNode) {
-          //     overlay.parentNode.removeChild(overlay);
-          //   }
-          // }, 3000); // 3秒後に削除
-        }
+        // 見出しを表示
+        displayOverlay(data, reference, tooltip);
+        updateButtonState(tooltip, "close");
       })
       .catch(() => console.error("⚠️ 記事の取得に失敗しました。"));
+  }
+
+  // 見出しをオーバーレイとして表示する関数
+  function displayOverlay(data, reference, tooltip) {
+    if (!data.judge) {
+      const parentLi = reference.closest("li");
+      if (!parentLi) {
+        console.error("親<li>要素が見つかりませんでした。");
+        return;
+      }
+
+      const overlay = document.createElement("div");
+      overlay.innerText = `💡 ${data.headline}`;
+      overlay.style.position = "absolute";
+      overlay.style.top = "0";
+      overlay.style.left = "0";
+      overlay.style.width = "100%";
+      overlay.style.height = "100%";
+      overlay.style.backgroundColor = "rgba(230, 244, 234, 0.6)"; // 背景色を薄い緑に変更
+      overlay.style.color = "#000"; // テキスト色を黒に変更
+      overlay.style.display = "flex";
+      overlay.style.alignItems = "center";
+      overlay.style.justifyContent = "center";
+      overlay.style.fontSize = "14px";
+      overlay.style.boxShadow = "0 0 0 1px #4a8a57"; // 緑色の枠線を追加
+      overlay.style.borderRadius = "5px";
+      overlay.style.pointerEvents = "none"; // クリックを無効化
+      overlay.style.zIndex = "1000";
+      overlay.style.overflow = "hidden"; // 幅を超えた場合に隠す
+      overlay.style.padding = "4px"; // 内側の余白を追加
+
+      parentLi.style.position = "relative";
+      parentLi.appendChild(overlay);
+
+      // ボタンの状態を「×」に変更
+      updateButtonState(tooltip, "close");
+    }
   }
 
   // トップページ専用：URLが https://www.goo.ne.jp/ で始まる場合のみ実行
@@ -99,6 +110,14 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     tooltip.dataset.popupButton = "headline-check-open-popup-button"; // データ属性を追加
     tooltip.style.pointerEvents = "all"; // クリックイベントを有効化
 
+  // 記事URLがキャッシュに存在する場合、状態を「close」に設定
+  const articleUrl = reference.tagName === "A" ? reference.href : reference.querySelector("a")?.href;
+  if (articleUrl && urlCache.has(articleUrl)) {
+    updateButtonState(tooltip, "close");
+  } else {
+    updateButtonState(tooltip, "default");
+  }
+
     // クリックイベントを追加
     tooltip.addEventListener("click", (e) => {
       e.stopPropagation(); // イベントのバブリングを防ぐ
@@ -119,7 +138,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
       if (articleUrl) {
         console.log(`記事URL: ${articleUrl}`); // デバッグ用ログ
-        fetchHeadline(articleUrl, reference); // URLが存在する場合、見出しを取得
+        fetchHeadline(articleUrl, reference, tooltip); // URLが存在する場合、見出しを取得
       } else {
         console.error("記事URLが見つかりませんでした。");
         console.log("デバッグ情報:", reference.outerHTML); // referenceの内容をログに出力
@@ -154,6 +173,17 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
         top: `${y}px`,
       });
     });
+  }
+
+  // ボタンの状態に応じてスタイルを変更
+  function updateButtonState(tooltip, state) {
+    if (state === "default") {
+      tooltip.innerText = "\u00A0"; // 無地
+      tooltip.style.backgroundImage = "none";
+    } else if (state === "close") {
+      tooltip.innerText = "✖"; // ✖︎印
+      tooltip.style.backgroundImage = "none";
+    }
   }
 
   // ツールチップを削除する関数
@@ -202,15 +232,20 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
           document.body.appendChild(tooltip);
           showTooltip(reference, tooltip);
-          const button = document.querySelector('[data-popup-button="headline-check-open-popup-button"]');
-            if (button) {
-              button.addEventListener("click", () => {
-                // バックグラウンドスクリプトにメッセージを送信
-                chrome.runtime.sendMessage({ action: "openPopup" }, (response) => {
+          const button = document.querySelector(
+            '[data-popup-button="headline-check-open-popup-button"]'
+          );
+          if (button) {
+            button.addEventListener("click", () => {
+              // バックグラウンドスクリプトにメッセージを送信
+              chrome.runtime.sendMessage(
+                { action: "openPopup" },
+                (response) => {
                   console.log(response.status); // デバッグ用
-                });
-              });
-            }
+                }
+              );
+            });
+          }
         });
 
         // マウスアウト時にツールチップを削除
