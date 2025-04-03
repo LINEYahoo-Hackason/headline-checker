@@ -36,6 +36,11 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
         backgroundImage:
           'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%23ffffff"><circle cx="50" cy="50" r="40" stroke="%23ffffff" stroke-width="10" fill="none" stroke-dasharray="200" stroke-dashoffset="0"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="1s" repeatCount="indefinite"/></circle></svg>\')',
         classAction: "add",
+        additionalStyles: {
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "center",
+            backgroundSize: "contain",
+        },
       },
     };
 
@@ -46,6 +51,11 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     tooltip.style.backgroundImage = config.backgroundImage;
     tooltip.dataset.state = state;
     tooltip.classList[config.classAction]("loading");
+
+    // 追加のスタイルを適用
+    if (config.additionalStyles) {
+      Object.assign(tooltip.style, config.additionalStyles);
+  }
 
     const articleUrl = tooltip.dataset.url;
     if (articleUrl) {
@@ -71,6 +81,8 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       padding: "2px 8px",
       borderRadius: "4px",
       fontSize: "14px",
+      lineHeight: "1", // 行の高さを設定
+      height: "auto", // 高さを自動調整
       zIndex: "1000",
       whiteSpace: "nowrap",
       cursor: "pointer",
@@ -249,10 +261,9 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     overlay.className = "overlay"; // クラス名を追加
     overlay.innerText = `💡 ${data.headline}`;
     overlay.style.position = "absolute";
-    overlay.style.top = "-100%"; // 上の記事に被るように調整
+    overlay.style.bottom = "100%"; // 上の記事に被るように調整
     overlay.style.left = "0";
     overlay.style.width = "100%";
-    overlay.style.height = "100%";
     overlay.style.backgroundColor = "rgba(230, 244, 234, 0.6)"; // 背景色を薄い緑に変更
     overlay.style.color = "#000"; // テキスト色を黒に変更
     overlay.style.display = "flex";
