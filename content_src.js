@@ -55,7 +55,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     // 追加のスタイルを適用
     if (config.additionalStyles) {
       Object.assign(tooltip.style, config.additionalStyles);
-  }
+    }
 
     const articleUrl = tooltip.dataset.url;
     if (articleUrl) {
@@ -260,22 +260,61 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     const overlay = document.createElement("div");
     overlay.className = "overlay"; // クラス名を追加
     overlay.innerText = `💡 ${data.headline}`;
-    overlay.style.position = "absolute";
-    overlay.style.bottom = "100%"; // 上の記事に被るように調整
-    overlay.style.left = "0";
-    overlay.style.width = "100%";
-    overlay.style.backgroundColor = "rgba(230, 244, 234, 0.6)"; // 背景色を薄い緑に変更
-    overlay.style.color = "#000"; // テキスト色を黒に変更
-    overlay.style.display = "flex";
-    overlay.style.alignItems = "center";
-    overlay.style.justifyContent = "center";
-    overlay.style.fontSize = "14px";
-    overlay.style.boxShadow = "0 0 0 1px #4a8a57"; // 緑色の枠線を追加
-    overlay.style.borderRadius = "5px";
-    overlay.style.pointerEvents = "none"; // クリックを無効化
-    overlay.style.zIndex = "1000";
-    overlay.style.overflow = "hidden"; // 幅を超えた場合に隠す
-    overlay.style.padding = "4px"; // 内側の余白を追加
+    Object.assign(overlay.style, {
+      position: "absolute",
+      bottom: "100%", // 吹き出しを親要素の上に配置
+      left: "50%",
+      transform: "translateX(-50%)", // 中央揃え
+      width: "auto",
+      maxWidth: "300px", // 最大幅を設定
+      backgroundColor: "rgba(230, 244, 234, 0.6)", // 背景色を薄い緑に変更
+      color: "#000", // テキスト色を黒に変更
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "14px",
+      boxShadow: "rgba(0, 0, 0, 0.1) 0px 4px 6px,0 0 0 1px #4a8a57", // 影を追加
+      borderRadius: "8px", // 角を丸くする
+      padding: "8px", // 内側の余白を追加
+      zIndex: "1000",
+      pointerEvents: "none", // クリックを無効化
+      textAlign: "center",
+    });
+
+    // 吹き出しの矢印を作成
+    const arrow = document.createElement("div");
+    Object.assign(arrow.style, {
+      content: '""',
+      position: "absolute",
+      bottom: "-10px", // 吹き出しの下に配置
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: "0",
+      height: "0",
+      borderLeft: "10px solid transparent", // 外側の枠の幅
+      borderRight: "10px solid transparent",
+      borderTop: "10px solid #4a8a57", // 外側の枠の色（吹き出しの輪郭色）
+      zIndex: "999", // 矢印をオーバーレイの下に配置
+    });
+
+    // 内側の矢印を作成
+    const innerArrow = document.createElement("div");
+    Object.assign(innerArrow.style, {
+      content: '""',
+      position: "absolute",
+      bottom: "-8px", // 外側矢印の上に配置
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: "0",
+      height: "0",
+      borderLeft: "8px solid transparent", // 内側の矢印の幅
+      borderRight: "8px solid transparent",
+      borderTop: "8px solid rgba(230, 244, 234, 0.6)", // 内側の矢印の色（吹き出しの背景色）
+      zIndex: "1000", // 内側矢印を外側矢印の上に配置
+    });
+
+    overlay.appendChild(arrow); // 外側矢印を追加
+    overlay.appendChild(innerArrow); // 内側矢印を追加
 
     parentLi.style.position = "relative";
     parentLi.appendChild(overlay);
