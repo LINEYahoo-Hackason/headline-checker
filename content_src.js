@@ -264,7 +264,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     overlay.innerText = `💡 ${data.headline}`;
     Object.assign(overlay.style, {
       position: "absolute",
-      bottom: "100%", // 吹き出しを親要素の上に配置
+      bottom: "calc(100% + 10px)", // 吹き出しを親要素の上に配置
       left: "50%",
       transform: "translateX(-50%)", // 中央揃え
       width: `${parentWidth}px`, // 親<li>要素の幅を適用
