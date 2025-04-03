@@ -47,6 +47,13 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     tooltip.dataset.state = state;
     tooltip.classList[config.classAction]("loading");
 
+    const articleUrl = tooltip.dataset.url;
+    if (articleUrl) {
+      // キャッシュに状態を保存
+      const cachedData = urlCache.get(articleUrl) || {};
+      urlCache.set(articleUrl, { ...cachedData, state });
+    }
+
     if (state === TOOLTIP_STATES.LOADING) {
       loadingCache.add(tooltip.dataset.url);
     } else {
@@ -77,9 +84,10 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     tooltip.dataset.url = articleUrl;
 
     if (articleUrl) {
+      const cachedData = urlCache.get(articleUrl);
       if (loadingCache.has(articleUrl)) {
         updateButtonState(tooltip, TOOLTIP_STATES.LOADING);
-      } else if (urlCache.has(articleUrl)) {
+      } else if (cachedData && cachedData.state === TOOLTIP_STATES.CLOSE) {
         updateButtonState(tooltip, TOOLTIP_STATES.CLOSE);
       } else {
         updateButtonState(tooltip, TOOLTIP_STATES.DEFAULT);
@@ -167,10 +175,12 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       // キャッシュにURLが存在する場合はキャッシュを使用
       if (urlCache.has(articleUrl)) {
         const cachedData = urlCache.get(articleUrl);
-        displayOverlay(cachedData, reference, tooltip);
-        updateButtonState(tooltip, TOOLTIP_STATES.CLOSE);
-        resolve(); // 処理が成功したことを通知
-        return;
+        if (cachedData && cachedData.data) {
+          displayOverlay(cachedData.data, reference, tooltip);
+          updateButtonState(tooltip, TOOLTIP_STATES.CLOSE);
+          resolve(); // 処理が成功したことを通知
+          return;
+        }
       }
 
       fetch("http://localhost:8000/headline", {
@@ -178,10 +188,19 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: articleUrl }), // 記事URLをJSON形式で送信
       })
-        .then((res) => res.json()) // レスポンスをJSONとして解析
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTPエラー: ${res.status}`);
+          }
+          return res.json();
+        }) // レスポンスをJSONとして解析
         .then((data) => {
+          if (!data || typeof data !== "object" || !data.headline) {
+            throw new Error("不正なデータ形式が返されました");
+          }
+
           // キャッシュに保存
-          urlCache.set(articleUrl, data);
+          urlCache.set(articleUrl, { data, state: TOOLTIP_STATES.CLOSE });
 
           // 見出しを表示
           displayOverlay(data, reference, tooltip);
@@ -190,6 +209,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
         })
         .catch((error) => {
           console.error("⚠️ 記事の取得に失敗しました。", error);
+          updateButtonState(tooltip, TOOLTIP_STATES.DEFAULT); // 状態をデフォルトに戻す
           reject(error); // エラーを通知
         });
     });
@@ -200,44 +220,57 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     if (overlay) {
       overlay.remove();
     }
+
+    // キャッシュの状態をリセット
+    const articleUrl = getArticleUrl(reference);
+    if (articleUrl) {
+      const cachedData = urlCache.get(articleUrl) || {};
+      urlCache.set(articleUrl, {
+        ...cachedData,
+        state: TOOLTIP_STATES.DEFAULT,
+      });
+    }
   }
 
   // 見出しをオーバーレイとして表示する関数
   function displayOverlay(data, reference, tooltip) {
-    if (!data.judge) {
-      const parentLi = reference.closest("li");
-      if (!parentLi) {
-        console.error("親<li>要素が見つかりませんでした。");
-        return;
-      }
-
-      const overlay = document.createElement("div");
-      overlay.className = "overlay"; // クラス名を追加
-      overlay.innerText = `💡 ${data.headline}`;
-      overlay.style.position = "absolute";
-      overlay.style.top = "0";
-      overlay.style.left = "0";
-      overlay.style.width = "100%";
-      overlay.style.height = "100%";
-      overlay.style.backgroundColor = "rgba(230, 244, 234, 0.6)"; // 背景色を薄い緑に変更
-      overlay.style.color = "#000"; // テキスト色を黒に変更
-      overlay.style.display = "flex";
-      overlay.style.alignItems = "center";
-      overlay.style.justifyContent = "center";
-      overlay.style.fontSize = "14px";
-      overlay.style.boxShadow = "0 0 0 1px #4a8a57"; // 緑色の枠線を追加
-      overlay.style.borderRadius = "5px";
-      overlay.style.pointerEvents = "none"; // クリックを無効化
-      overlay.style.zIndex = "1000";
-      overlay.style.overflow = "hidden"; // 幅を超えた場合に隠す
-      overlay.style.padding = "4px"; // 内側の余白を追加
-
-      parentLi.style.position = "relative";
-      parentLi.appendChild(overlay);
-
-      // ボタンの状態を「×」に変更
-      updateButtonState(tooltip, TOOLTIP_STATES.CLOSE);
+    if (!data || !data.headline) {
+      console.error("⚠️ データが無効です。", data);
+      return;
     }
+
+    const parentLi = reference.closest("li");
+    if (!parentLi) {
+      console.error("親<li>要素が見つかりませんでした。");
+      return;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.className = "overlay"; // クラス名を追加
+    overlay.innerText = `💡 ${data.headline}`;
+    overlay.style.position = "absolute";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100%";
+    overlay.style.height = "100%";
+    overlay.style.backgroundColor = "rgba(230, 244, 234, 0.6)"; // 背景色を薄い緑に変更
+    overlay.style.color = "#000"; // テキスト色を黒に変更
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    overlay.style.fontSize = "14px";
+    overlay.style.boxShadow = "0 0 0 1px #4a8a57"; // 緑色の枠線を追加
+    overlay.style.borderRadius = "5px";
+    overlay.style.pointerEvents = "none"; // クリックを無効化
+    overlay.style.zIndex = "1000";
+    overlay.style.overflow = "hidden"; // 幅を超えた場合に隠す
+    overlay.style.padding = "4px"; // 内側の余白を追加
+
+    parentLi.style.position = "relative";
+    parentLi.appendChild(overlay);
+
+    // ボタンの状態を「×」に変更
+    updateButtonState(tooltip, TOOLTIP_STATES.CLOSE);
   }
 
   // トップページ専用：URLが https://www.goo.ne.jp/ で始まる場合のみ実行
