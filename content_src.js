@@ -249,7 +249,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     overlay.className = "overlay"; // クラス名を追加
     overlay.innerText = `💡 ${data.headline}`;
     overlay.style.position = "absolute";
-    overlay.style.top = "0";
+    overlay.style.top = "-100%"; // 上の記事に被るように調整
     overlay.style.left = "0";
     overlay.style.width = "100%";
     overlay.style.height = "100%";
@@ -327,6 +327,12 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
           document.body.appendChild(tooltip);
           showTooltip(reference, tooltip);
+
+          // 親<li>要素のスタイルを調整 overflow: hidden;の場合overflowが正常に表示されないため
+          const parentLi = reference.closest("li");
+          if (parentLi) {
+            parentLi.style.overflow = "visible"; // overflowをvisibleに変更
+          }
 
           // const button = document.querySelector(
           //   '[data-popup-button="headline-check-open-popup-button"]'
