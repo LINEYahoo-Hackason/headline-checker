@@ -310,7 +310,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       height: "0",
       borderLeft: "8px solid transparent", // 内側の矢印の幅
       borderRight: "8px solid transparent",
-      borderTop: "8px solid rgba(230, 244, 234, 0.6)", // 内側の矢印の色（吹き出しの背景色）
+      borderTop: "8px solid rgba(230, 244, 234, 0.9)", // 内側の矢印の色（吹き出しの背景色）
       zIndex: "1000", // 内側矢印を外側矢印の上に配置
     });
 
