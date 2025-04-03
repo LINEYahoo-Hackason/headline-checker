@@ -8,7 +8,8 @@ import time
 import logging
 
 # 定数定義
-MODEL_NAME = "elyza-japanese-llama-2-7b-fast-instruct"
+MODEL_NAME = "llama-3.2-1b-instruct"
+# MODEL_NAME = "elyza-japanese-llama-2-7b-fast-instruct"
 API_URL = "http://localhost:1234/v1/chat/completions"
 TEMPERATURE = 0.1
 
@@ -103,7 +104,7 @@ def generate_headline(article_text):
                 "messages": [{"role": "user", "content": prompt}],  # プロンプトを含むメッセージ
                 "temperature": TEMPERATURE  # 出力の多様性を制御するパラメータ
             },
-            timeout=10  # タイムアウトを10秒に設定
+            timeout=200#タイムアウトを10秒に設定
         )
         response.raise_for_status()  # ステータスコードがエラーの場合例外を発生
         # レスポンスから要約を抽出して返す

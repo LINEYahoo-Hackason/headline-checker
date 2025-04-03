@@ -3,15 +3,25 @@
   "name": "見出しチェッカー",
   "version": "1.0",
   "description": "ニュース見出しにカーソルを当ててボタンを押すと、AIが本文を読み取り正しい見出しを提示する拡張機能です。",
-  "permissions": ["scripting", "activeTab"],
+  "permissions": [
+    "scripting",
+    "activeTab"
+  ],
   "host_permissions": [
-    "http://localhost:8000/*",
-    "https://www.goo.ne.jp/*"
+    "https://www.goo.ne.jp/*",
+    "https://news.yahoo.co.jp/*",
+    "https://news.goo.ne.jp/*"
   ],
   "content_scripts": [
     {
-      "matches": ["https://www.goo.ne.jp/*","https://news.yahoo.co.jp/*"],
-      "js": ["content.js"]
+      "matches": [
+        "https://www.goo.ne.jp/*",
+        "https://news.yahoo.co.jp/*",
+        "https://news.goo.ne.jp/*"
+      ],
+      "js": [
+        "content.js"
+      ]
     }
   ],
   "action": {

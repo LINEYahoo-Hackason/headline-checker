@@ -39,10 +39,10 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
           const overlay = document.createElement("div");
           overlay.innerText = `💡 ${data.headline}`;
           overlay.style.position = "absolute";
-          overlay.style.top = "0";
+          overlay.style.top = "-100%"; // 上に移動
           overlay.style.left = "0";
           overlay.style.width = "100%";
-          overlay.style.height = "100%";
+          overlay.style.height = "500%"; // 高さを500%に設定
           overlay.style.backgroundColor = "rgba(230, 244, 234, 0.6)"; // 背景色を薄い緑に変更
           overlay.style.color = "#000"; // テキスト色を黒に変更
           overlay.style.display = "flex";
