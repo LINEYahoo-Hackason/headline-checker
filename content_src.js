@@ -255,17 +255,17 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
           const button = document.querySelector(
             '[data-popup-button="headline-check-open-popup-button"]'
           );
-          if (button) {
-            button.addEventListener("click", () => {
-              // バックグラウンドスクリプトにメッセージを送信
-              chrome.runtime.sendMessage(
-                { action: "openPopup" },
-                (response) => {
-                  console.log(response.status); // デバッグ用
-                }
-              );
-            });
-          }
+          // if (button) {
+          //   button.addEventListener("click", () => {
+          //     // バックグラウンドスクリプトにメッセージを送信
+          //     chrome.runtime.sendMessage(
+          //       { action: "openPopup" },
+          //       (response) => {
+          //         console.log(response.status); // デバッグ用
+          //       }
+          //     );
+          //   });
+          // }
         });
 
         // マウスアウト時にツールチップを削除
