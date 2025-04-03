@@ -38,6 +38,11 @@ def fetch_page_content(url):
     except requests.RequestException as e:
         raise RuntimeError(f"ページの取得に失敗しました: {str(e)}")
 
+def extract_clickbait_headline(soup):
+    """ BeautifulSoupオブジェクトから釣り見出しを抽出 """
+    title_element = soup.title  # titleタグを取得
+    return title_element.get_text(strip=True) if title_element else "釣り見出しが見つかりませんでした"
+
 def extract_article_text(soup):
     """ BeautifulSoupオブジェクトから記事本文を抽出 """
     article_content = soup.select_one(ARTICLE_TEXT_SELECTOR)
@@ -63,7 +68,9 @@ def fetch_article_text(url):
         except Exception as e:
             pass
         article_text = extract_article_text(soup)
-        return article_text if article_text else "記事本文が見つかりませんでした"
+        article_text = article_text if article_text else "記事本文が見つかりませんでした"
+        article_title = extract_clickbait_headline(soup).split(" - ")[0]  # タイトルを取得し、不要な部分を削除
+        return article_text, article_title
     except RuntimeError as e:
         return str(e)
 
@@ -75,13 +82,14 @@ def clean_response(response_text):
     # 複数行がある場合、最初の行のみを返す
     return response_text.split("\n")[0].strip().split("。")[0].strip()
 
-def generate_headline(article_text):
+def generate_headline(article_text, article_title):
     """ ニュース記事から要約を生成 """
     # プロンプトの定義：ニュース記事を要約するための指示を含む
     prompt = (
         f"""
-        あなたは優秀なニュース記事要約AIです。
-        回答は要約文のみです。指示への返答や説明文は絶対に書かないでください。
+        あなたはニュース記事要約し、正しい見出しを生成する優秀なAIです。
+        釣り見出しは絶対に生成禁止です。
+        限られた時間で効率的に情報を得るため、見出しの正確性を重視してください。
         記事内容を必ず16字以内で確実に要約して必ず16字以内で出力してください。
         誇張や感情的表現は避け、客観的に要点を伝えてください。
         重要な情報を優先し、冗長な表現は省いてください。
@@ -89,11 +97,14 @@ def generate_headline(article_text):
         PREP法(Point, Reason, Example, Point)のPointを意識してください。
         必ず主語を含めてください。
         5W1H(Who, What, When, Where, Why, How)のWho, Whatを意識してください。
+        現時点の釣り見出し：
+        {article_title}
         記事内容：
         {article_text}
         要約：
+        (回答は要約文のみです。指示への返答や説明文は絶対に書かないでください。)
         """
-    )
+    ).replace("    ", "")  # インデントを削除
     try:
         # APIリクエストを送信して要約を生成（タイムアウトを設定）
         response = requests.post(
@@ -120,11 +131,11 @@ def process_requests():
     while True:
         try:
             # キューからリクエストデータを取得
-            article_text, result_queue = request_queue.get()
+            article_text, article_title, result_queue = request_queue.get()
             logging.info("リクエスト処理を開始します")
             
             # 要約を生成
-            headline = generate_headline(article_text)
+            headline = generate_headline(article_text, article_title)
             
             # 結果を返す
             result_queue.put(headline)
@@ -147,17 +158,17 @@ def headline_api():
         # URLが指定されていない場合はエラーレスポンスを返す
         return jsonify({"headline": "記事URLが指定されていません"}), 400
 
-    # 記事本文を取得
-    article_text = fetch_article_text(article_url)
-    if "失敗" in article_text:
-        # 記事本文の取得に失敗した場合はエラーレスポンスを返す
+    # 記事本文と釣り見出しを取得
+    article_text, article_title = fetch_article_text(article_url)
+    if "失敗" in article_text or not article_title:
+        # 記事本文またはタイトルの取得に失敗した場合はエラーレスポンスを返す
         return jsonify({"headline": article_text}), 500
 
     # 結果を受け取るためのキューを作成
     result_queue = queue.Queue()
 
     # リクエストをキューに追加
-    request_queue.put((article_text, result_queue))
+    request_queue.put((article_text, article_title, result_queue))
 
     # 結果を待機
     headline = result_queue.get()
