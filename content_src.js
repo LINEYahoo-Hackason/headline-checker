@@ -51,6 +51,56 @@ import manifest from "./manifest.json";
   const urlCache = new Map();
   const loadingCache = new Set();
 
+  // 魚アイコンを作成する関数
+function createMovingFish() {
+  const span = document.createElement("span");
+  span.style.display = "flex";
+  span.style.width = "60px"; // 魚の動く範囲
+  span.style.height = "100%"; // ボタンの高さに合わせる
+  span.style.backgroundImage = "url('http://localhost:8000/static/fish.png')";
+  span.style.backgroundSize = "contain"; // 枠内に収まるように表示
+  span.style.backgroundRepeat = "no-repeat";
+  span.style.backgroundPosition = "center"; // 中央配置
+  span.style.position = "absolute"; // 絶対位置指定
+  span.style.top = "0"; // 上部に配置
+  span.style.right = "0"; // ボタン右端に合わせる
+  span.style.transform = "translateX(-50%)"; // 中央揃え
+  span.style.pointerEvents = "none"; // 魚アイコン自体はクリックできないように設定
+  span.style.zIndex = "10"; // ボタンの上に表示されるように設定
+
+  // アニメーション用のクラスを追加
+  span.classList.add("moving-fish");
+
+  return span;
+}
+
+// CSSアニメーションを動的に追加
+const style = document.createElement("style");
+style.innerHTML = `
+@keyframes moveLeftRight {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(30px); }
+  100% { transform: translateX(0); }
+}
+.moving-fish {
+  animation: moveLeftRight 1s infinite ease-in-out;
+}
+`;
+document.head.appendChild(style);
+
+// ボタンのローディング状態に魚アイコンを表示
+function setButtonLoadingWithFish(button) {
+  const fish = createMovingFish();
+  button.appendChild(fish);
+
+  // ローディング終了時に魚アイコンを削除
+  setTimeout(() => {
+    if (fish && fish.parentNode) {
+      fish.parentNode.removeChild(fish);
+    }
+  }, 3000); // 3秒後に削除
+}
+
   // ツールチップの状態を更新
   function updateButtonState(tooltip, state) {
     const stateConfig = {
@@ -88,6 +138,10 @@ import manifest from "./manifest.json";
     // 追加のスタイルを適用
     if (config.additionalStyles) {
       Object.assign(tooltip.style, config.additionalStyles);
+    }
+
+    if (state === TOOLTIP_STATES.LOADING) {
+      setButtonLoadingWithFish(tooltip); // 魚アイコンを表示
     }
 
     const articleUrl = tooltip.dataset.url;
