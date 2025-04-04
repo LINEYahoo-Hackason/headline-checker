@@ -95,7 +95,8 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     tooltip.innerText = content;
     tooltip.dataset.popupButton = "headline-check-open-popup-button";
 
-    const articleUrl = getArticleUrl(reference);
+    let articleUrl = getArticleUrl(reference);
+    let articleText = reference.querySelector("a")?.textContent.trim() || null; // <a>タグのテキストを取得
     tooltip.dataset.url = articleUrl;
 
     if (articleUrl) {
@@ -112,7 +113,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     }
 
     tooltip.addEventListener("click", (e) =>
-      handleTooltipClick(e, tooltip, reference)
+      handleTooltipClick(e, articleText, tooltip, reference)
     );
     tooltip.addEventListener("mouseenter", () => (isTooltipHovered = true));
     tooltip.addEventListener("mouseleave", () =>
@@ -132,7 +133,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
   }
 
   // ツールチップクリック時の処理
-  function handleTooltipClick(event, tooltip, reference) {
+  function handleTooltipClick(event, articleText, tooltip, reference) {
     event.stopPropagation();
     event.preventDefault();
 
@@ -169,19 +170,6 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     } else {
       isTooltipHovered = false;
     }
-  }
-
-  // ツールチップを表示
-  function showTooltip(reference, tooltip) {
-    computePosition(reference, tooltip, {
-      placement: "right",
-      middleware: [shift(), flip()],
-    }).then(({ x, y }) => {
-      Object.assign(tooltip.style, {
-        left: `${x - 20}px`,
-        top: `${y}px`,
-      });
-    });
   }
 
   // 記事URLをバックエンドに送信し、見出しを取得
@@ -356,75 +344,6 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
   if (!isTargetPage) {
     console.log("⚠️ このページは対象外です。"); // 対象外の場合のメッセージ
     return; // 処理を終了
-  }
-
-  // ツールチップを作成する関数
-  function createTooltip(content, reference) {
-    const tooltip = document.createElement("button");
-    tooltip.className = "tooltip";
-    tooltip.innerText = content;
-    tooltip.style.position = "absolute";
-    tooltip.style.backgroundColor = "#4a8a57"; // 背景色を緑に変更
-    tooltip.style.color = "#ffffff"; // テキスト色を白に変更
-    tooltip.style.padding = "2px 8px"; // パディングを調整
-    tooltip.style.boxShadow = "0 0 0 1px rgb(0, 0, 0)";
-    tooltip.style.borderRadius = "4px"; // 丸みを追加
-    tooltip.style.fontSize = "14px"; // フォントサイズを調整
-    tooltip.style.zIndex = "1000";
-    tooltip.style.whiteSpace = "nowrap";
-    tooltip.style.cursor = "pointer"; // クリック可能にする
-    tooltip.style.boxShadow = "0px 4px 6px rgba(0, 0, 0, 0.1)"; // シャドウを追加
-    tooltip.dataset.popupButton = "headline-check-open-popup-button"; // データ属性を追加
-    tooltip.style.pointerEvents = "all"; // クリックイベントを有効化
-
-    // クリックイベントを追加
-    tooltip.addEventListener("click", (e) => {
-      e.stopPropagation(); // イベントのバブリングを防ぐ
-      e.preventDefault(); // デフォルトの動作を防ぐ
-
-      // `<a>`タグを取得
-      let articleUrl = null;
-      let articleText = null;
-
-      if (reference.tagName === "A") {
-        articleUrl = reference.href; // referenceが<a>タグの場合
-        articleText = reference.innerText; // <a>タグのテキストを取得
-      } else if (reference.querySelector("a")) {
-        articleUrl = reference.querySelector("a").href; // 子要素に<a>タグがある場合
-        articleText = reference.querySelector("a").innerText; // <a>タグのテキストを取得
-      } else {
-        const parentLink = reference.closest("a"); // 親要素に<a>タグがあるか探索
-        if (parentLink) {
-          articleUrl = parentLink.href;
-          articleText = parentLink.innerText; // 親要素の<a>タグのテキストを取得
-        }
-      }
-
-      if (articleUrl) {
-        console.log(`記事URL: ${articleUrl}`); // デバッグ用ログ
-        console.log(`記事テキスト: ${articleText}`); // デバッグ用ログ
-        fetchHeadline(articleUrl, reference, articleText, tooltip); // URLが存在する場合、見出しを取得
-      } else {
-        console.error("記事URLが見つかりませんでした。");
-        console.log("デバッグ情報:", reference.outerHTML); // referenceの内容をログに出力
-      }
-    });
-
-    // ツールチップにマウスが乗ったときの処理
-    tooltip.addEventListener("mouseenter", () => {
-      isTooltipHovered = true;
-    });
-
-    // ツールチップからマウスが離れたときの処理
-    tooltip.addEventListener("mouseleave", () => {
-      isTooltipHovered = false;
-      if (!isTooltipHovered) {
-        removeTooltip(tooltip);
-        currentTooltip = null;
-      }
-    });
-
-    return tooltip;
   }
 
   // ツールチップを表示する関数
