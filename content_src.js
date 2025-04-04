@@ -37,9 +37,9 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
           'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%23ffffff"><circle cx="50" cy="50" r="40" stroke="%23ffffff" stroke-width="10" fill="none" stroke-dasharray="200" stroke-dashoffset="0"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="1s" repeatCount="indefinite"/></circle></svg>\')',
         classAction: "add",
         additionalStyles: {
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "center",
-            backgroundSize: "contain",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center",
+          backgroundSize: "contain",
         },
       },
     };
@@ -76,13 +76,15 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     const tooltip = document.createElement("button");
     Object.assign(tooltip.style, {
       position: "absolute",
-      backgroundColor: "#4a8a57",
-      color: "#ffffff",
-      padding: "2px 8px",
+      backgroundColor: "rgba(74, 138, 87, 0.9)",
+      color: "rgba(255, 255, 255, 0.8)",
+      padding: "0", // 内側の余白を削除
+      border: "2px solid rgba(102, 102, 102, 0.9)", // 枠線の色と太さ
       borderRadius: "4px",
       fontSize: "14px",
       lineHeight: "1", // 行の高さを設定
-      height: "auto", // 高さを自動調整
+      height: `min(20px, ${reference.offsetHeight}px, ${reference.offsetWidth}px)`, // 見出しと同じ高さ
+      width: `min(20px, ${reference.offsetHeight}px, ${reference.offsetWidth}px)`, // 見出しと同じ幅
       zIndex: "1000",
       whiteSpace: "nowrap",
       cursor: "pointer",
@@ -259,42 +261,63 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
     const parentWidth = parentLi.offsetWidth; // 親<li>要素の幅を取得
 
+    // <a>タグのフォントサイズを取得
+    const linkElement = reference.querySelector("a") || reference.closest("a");
+    const fontSize = linkElement
+      ? getComputedStyle(linkElement).fontSize
+      : "14px"; // デフォルト値を設定
+
     const overlay = document.createElement("div");
     overlay.className = "overlay"; // クラス名を追加
     overlay.innerText = `💡 ${data.headline}`;
     Object.assign(overlay.style, {
       position: "absolute",
-      bottom: "calc(100% + 10px)", // 吹き出しを親要素の上に配置
+      bottom: "calc(100% + 4px)", // 吹き出しを親要素の上に配置
       left: "50%",
       transform: "translateX(-50%)", // 中央揃え
       width: `${parentWidth}px`, // 親<li>要素の幅を適用
-      backgroundColor: "rgba(230, 244, 234, 0.6)", // 背景色を薄い緑に変更
-      color: "#000", // テキスト色を黒に変更
+      backgroundColor: "rgba(255, 255, 255, 0.9)", // 背景色を白に変更
+      color: "rgba(0, 0, 0, 0.8)", // テキスト色を黒に変更
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: "14px",
-      boxShadow: "rgba(0, 0, 0, 0.1) 0px 4px 6px,0 0 0 1px #4a8a57", // 影を追加
+      fontSize: fontSize, // <a>タグのフォントサイズを適用
+      boxShadow:
+        "rgba(0, 0, 0, 0.1) 0px 4px 6px,0 0 0 1px rgba(74, 138, 87, 0.9)", // 影を追加
       borderRadius: "8px", // 角を丸くする
-      padding: "8px", // 内側の余白を追加
+      padding: "4px", // 内側の余白を追加
       zIndex: "1000",
       pointerEvents: "none", // クリックを無効化
       textAlign: "center",
+      "font-family": "BIZ UDPGothic", // フォントを指定
     });
+    // 吹き出しの矢印をSVGで作成
+    const arrowSvg = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "svg"
+    );
+    arrowSvg.setAttribute("width", "20");
+    arrowSvg.setAttribute("height", "10");
+    arrowSvg.setAttribute("viewBox", "0 0 20 10");
+    arrowSvg.style.position = "absolute";
+    arrowSvg.style.bottom = "-10px"; // 吹き出しの下に配置
+    arrowSvg.style.left = "80%";
+    arrowSvg.style.transform = "translateX(-80%)";
+    arrowSvg.style.zIndex = "999";
 
     // 吹き出しの矢印を作成
     const arrow = document.createElement("div");
     Object.assign(arrow.style, {
       content: '""',
       position: "absolute",
-      bottom: "-10px", // 吹き出しの下に配置
-      left: "50%",
-      transform: "translateX(-50%)",
+      bottom: "-6px", // 吹き出しの下に配置
+      left: "80%",
+      transform: "translateX(-80%)",
       width: "0",
       height: "0",
-      borderLeft: "10px solid transparent", // 外側の枠の幅
-      borderRight: "10px solid transparent",
-      borderTop: "10px solid #4a8a57", // 外側の枠の色（吹き出しの輪郭色）
+      borderLeft: "80px solid transparent", // 外側の枠の幅
+      borderRight: "50px solid transparent",
+      borderTop: "6px solid rgba(74, 138, 87, 0.9)", // 外側の枠の色（吹き出しの輪郭色）
       zIndex: "999", // 矢印をオーバーレイの下に配置
     });
 
@@ -303,14 +326,14 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     Object.assign(innerArrow.style, {
       content: '""',
       position: "absolute",
-      bottom: "-8px", // 外側矢印の上に配置
-      left: "50%",
-      transform: "translateX(-50%)",
+      bottom: "-4px", // 外側矢印の上に配置
+      left: "80%",
+      transform: "translateX(-80%)",
       width: "0",
       height: "0",
-      borderLeft: "8px solid transparent", // 内側の矢印の幅
-      borderRight: "8px solid transparent",
-      borderTop: "8px solid rgba(230, 244, 234, 0.9)", // 内側の矢印の色（吹き出しの背景色）
+      borderLeft: "80px solid transparent", // 内側の矢印の幅
+      borderRight: "50px solid transparent",
+      borderTop: "4px solid rgba(230, 244, 234, 0.9)", // 内側の矢印の色（吹き出しの背景色）
       zIndex: "1000", // 内側矢印を外側矢印の上に配置
     });
 
