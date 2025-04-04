@@ -69,10 +69,7 @@ def fetch_article_text(url):
         article_text = (
             article_text if article_text else "記事本文が見つかりませんでした"
         )
-        article_title = extract_clickbait_headline(soup).split(" - ")[
-            0
-        ]  # タイトルを取得し、不要な部分を削除
-        return article_text, article_title
+        return article_text
     except RuntimeError as e:
         return str(e)
 
@@ -148,6 +145,7 @@ def generate_headline(article_text, original_headline):
         is_relevant = None
         new_headline = None
 
+        print(f"AIの応答: {lines}")
         for line in lines:
             if line.startswith("適切性:"):
                 is_relevant = line.replace("適切性:", "").strip()
@@ -178,7 +176,7 @@ def headline_api():
 
 
     # 記事本文と釣り見出しを取得
-    article_text, original_headline = fetch_article_text(article_url)F
+    article_text = fetch_article_text(article_url)
     if "失敗" in article_text or not original_headline:
         # 記事本文またはタイトルの取得に失敗した場合はエラーレスポンスを返す
         return jsonify({"headline": article_text}), 500
@@ -186,12 +184,13 @@ def headline_api():
     # 要約を生成
     try:
         headline = generate_headline(article_text, original_headline)
+        print(f"生成された見出し: {headline}")
     except Exception as e:
         logging.error(f"要約生成中にエラーが発生しました: {str(e)}")
         return jsonify({"headline": "要約生成に失敗しました"}), 500
 
     # 要約をJSON形式で返す
-    return jsonify({"headline": headline["headline"], "judge": headline["is_relevant"]})
+    return jsonify({"headline": headline["new_headline"], "judge": headline["is_relevant"]})
 
 
 if __name__ == "__main__":

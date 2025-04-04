@@ -154,7 +154,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     }
 
     updateButtonState(tooltip, TOOLTIP_STATES.LOADING);
-    fetchHeadline(articleUrl, reference, tooltip).finally(() => {
+    fetchHeadline(articleUrl, reference, articleText, tooltip).finally(() => {
       if (tooltip.dataset.state === TOOLTIP_STATES.LOADING) {
         updateButtonState(tooltip, TOOLTIP_STATES.DEFAULT);
       }
@@ -185,7 +185,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
   }
 
   // 記事URLをバックエンドに送信し、見出しを取得
-  function fetchHeadline(articleUrl, reference, tooltip, articleText) {
+  function fetchHeadline(articleUrl, reference, articleText, tooltip) {
     return new Promise((resolve, reject) => {
       // キャッシュにURLが存在する場合はキャッシュを使用
       if (urlCache.has(articleUrl)) {
@@ -201,7 +201,10 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       fetch("http://localhost:8000/headline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: articleUrl, original_headline: articleText }), // 記事URLをJSON形式で送信
+        body: JSON.stringify({
+          url: articleUrl,
+          original_headline: articleText,
+        }), // 記事URLをJSON形式で送信
       })
         .then((res) => {
           if (!res.ok) {
@@ -400,7 +403,7 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       if (articleUrl) {
         console.log(`記事URL: ${articleUrl}`); // デバッグ用ログ
         console.log(`記事テキスト: ${articleText}`); // デバッグ用ログ
-        fetchHeadline(articleUrl, reference, articleText); // URLが存在する場合、見出しを取得
+        fetchHeadline(articleUrl, reference, articleText, tooltip); // URLが存在する場合、見出しを取得
       } else {
         console.error("記事URLが見つかりませんでした。");
         console.log("デバッグ情報:", reference.outerHTML); // referenceの内容をログに出力
