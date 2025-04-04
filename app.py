@@ -13,8 +13,10 @@ MODEL_NAME = "llama-3.2-1b-instruct"
 API_URL = "http://localhost:1234/v1/chat/completions"
 TEMPERATURE = 0.1
 
-READ_MORE_SELECTOR = 'a.btn-default.btn-large.btn-radius.btn-shadow.btn-block.btn-fixation'
-ARTICLE_TEXT_SELECTOR = '.article-text'
+READ_MORE_SELECTOR = (
+    "a.btn-default.btn-large.btn-radius.btn-shadow.btn-block.btn-fixation"
+)
+ARTICLE_TEXT_SELECTOR = ".article-text"
 BASE_URL = "https://news.goo.ne.jp"
 # READ_MORE_SELECTOR = '#uamods-pickup > div[data-ual-view-type="digest"] > a'
 # ARTICLE_TEXT_SELECTOR = '#uamods > div.article_body.highLightSearchTarget > div > p'
@@ -25,37 +27,43 @@ app = Flask(__name__)
 CORS(app)
 
 # ログ設定
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # リクエストキューの作成
 request_queue = queue.Queue()
 
+
 def fetch_page_content(url):
-    """ 指定されたURLのページ内容を取得 """
+    """指定されたURLのページ内容を取得"""
     try:
         res = requests.get(url)
         res.raise_for_status()
-        return BeautifulSoup(res.text, 'html.parser')
+        return BeautifulSoup(res.text, "html.parser")
     except requests.RequestException as e:
         raise RuntimeError(f"ページの取得に失敗しました: {str(e)}")
 
+
 def extract_article_text(soup):
-    """ BeautifulSoupオブジェクトから記事本文を抽出 """
+    """BeautifulSoupオブジェクトから記事本文を抽出"""
     article_content = soup.select_one(ARTICLE_TEXT_SELECTOR)
     return article_content.get_text(strip=True) if article_content else None
 
+
 def follow_read_more_link(soup):
-    """ 「続きを読む」リンクを辿り、新しいページの内容を取得 """
+    """「続きを読む」リンクを辿り、新しいページの内容を取得"""
     read_more_link = soup.select_one(READ_MORE_SELECTOR)
     if read_more_link:
-        read_more_href = read_more_link.get('href')
-        if read_more_href and not read_more_href.startswith('http'):
+        read_more_href = read_more_link.get("href")
+        if read_more_href and not read_more_href.startswith("http"):
             read_more_href = f"{BASE_URL}{read_more_href}"
         return fetch_page_content(read_more_href)
     return soup
 
+
 def fetch_article_text(url):
-    """ 記事URLから本文を取得し、必要に応じて「続きを読む」リンクを辿る """
+    """記事URLから本文を取得し、必要に応じて「続きを読む」リンクを辿る"""
     try:
         soup = fetch_page_content(url)
         # 続きを読むリンクがある場合は辿る
@@ -68,17 +76,24 @@ def fetch_article_text(url):
     except RuntimeError as e:
         return str(e)
 
+
 def clean_response(response_text):
-    """ LLMからの応答テキストから不要なフレーズを削除して整形 """
-    unwanted_phrases = ["見出し：", "<think>", "</think>", "AIによる見出し提案:", "以下の通りです。"]
+    """LLMからの応答テキストから不要なフレーズを削除して整形"""
+    unwanted_phrases = [
+        "見出し：",
+        "<think>",
+        "</think>",
+        "AIによる見出し提案:",
+        "以下の通りです。",
+    ]
     for phrase in unwanted_phrases:
         response_text = response_text.replace(phrase, "").strip()
     # 複数行がある場合、最初の行のみを返す
     return response_text.split("\n")[0].strip().split("。")[0].strip()
-    
 
-def generate_headline(article_text):
-    """ ニュース記事から要約を生成 """
+
+def generate_headline(article_text, original_headline):
+    """ニュース記事から要約を生成"""
     # プロンプトの定義：ニュース記事を要約するための指示を含む
     # prompt = (
     #     f"""
@@ -117,10 +132,12 @@ def generate_headline(article_text):
             API_URL,
             json={
                 "model": MODEL_NAME,  # 使用するモデル名
-                "messages": [{"role": "user", "content": prompt}],  # プロンプトを含むメッセージ
-                "temperature": TEMPERATURE  # 出力の多様性を制御するパラメータ
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],  # プロンプトを含むメッセージ
+                "temperature": TEMPERATURE,  # 出力の多様性を制御するパラメータ
             },
-            timeout=200#タイムアウトを10秒に設定
+            timeout=200,  # タイムアウトを10秒に設定
         )
         response.raise_for_status()  # ステータスコードがエラーの場合例外を発生
         # レスポンスから要約を抽出して返す
@@ -138,10 +155,7 @@ def generate_headline(article_text):
                 new_headline = line.replace("新しい見出し:", "").strip()
 
         # 結果を返す
-        return {
-            "is_relevant": is_relevant,
-            "new_headline": new_headline
-        }
+        return {"is_relevant": is_relevant, "new_headline": new_headline}
     except requests.Timeout:
         # タイムアウト時のエラーメッセージを返す
         return "要約生成に失敗しました: リクエストがタイムアウトしました"
@@ -149,17 +163,18 @@ def generate_headline(article_text):
         # その他のリクエストエラー時のエラーメッセージを返す
         return f"要約生成に失敗しました: {str(e)}"
 
+
 def process_requests():
-    """ キュー内のリクエストを順次処理 """
+    """キュー内のリクエストを順次処理"""
     while True:
         try:
             # キューからリクエストデータを取得
             article_text, original_headline, result_queue = request_queue.get()
             logging.info("リクエスト処理を開始します")
-            
+
             # 要約を生成
             headline = generate_headline(article_text, original_headline)
-            
+
             # 結果を返す
             result_queue.put(headline)
             logging.info("リクエスト処理が完了しました")
@@ -168,22 +183,24 @@ def process_requests():
         finally:
             request_queue.task_done()
 
+
 # スプーラー用のスレッドを開始
 threading.Thread(target=process_requests, daemon=True).start()
 
+
 @app.route("/headline", methods=["POST"])
 def headline_api():
-    """ APIエンドポイント：記事URLを受け取り、要約を生成して返す """
+    """APIエンドポイント：記事URLを受け取り、要約を生成して返す"""
     # リクエストデータを取得
     data = request.json
     article_url = data.get("url", "")  # URLが指定されているか確認
     original_headline = data.get("original_headline", "")
     print(f"受け取った元の見出し: {original_headline}")
-    
+
     if not article_url:
         # URLが指定されていない場合はエラーレスポンスを返す
         return jsonify({"headline": "記事URLが指定されていません"}), 400
-    
+
     if not original_headline:
         # original_headlineが指定されていない場合はエラーレスポンスを返す
         return jsonify({"headline": "元の見出しが指定されていません"}), 400
@@ -205,6 +222,7 @@ def headline_api():
 
     # 要約をJSON形式で返す
     return jsonify({"headline": result["headline"], "judge": result["is_relevant"]})
+
 
 if __name__ == "__main__":
     # Flaskアプリケーションをポート8000で起動
