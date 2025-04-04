@@ -2,9 +2,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 from bs4 import BeautifulSoup
-import threading
-import queue
-import time
 import logging
 
 # 定数定義
@@ -31,8 +28,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-# リクエストキューの作成
-request_queue = queue.Queue()
 
 
 def fetch_page_content(url):
@@ -43,7 +38,6 @@ def fetch_page_content(url):
         return BeautifulSoup(res.text, "html.parser")
     except requests.RequestException as e:
         raise RuntimeError(f"ページの取得に失敗しました: {str(e)}")
-
 
 def extract_article_text(soup):
     """BeautifulSoupオブジェクトから記事本文を抽出"""
@@ -72,7 +66,13 @@ def fetch_article_text(url):
         except Exception as e:
             pass
         article_text = extract_article_text(soup)
-        return article_text if article_text else "記事本文が見つかりませんでした"
+        article_text = (
+            article_text if article_text else "記事本文が見つかりませんでした"
+        )
+        article_title = extract_clickbait_headline(soup).split(" - ")[
+            0
+        ]  # タイトルを取得し、不要な部分を削除
+        return article_text, article_title
     except RuntimeError as e:
         return str(e)
 
@@ -163,31 +163,6 @@ def generate_headline(article_text, original_headline):
         # その他のリクエストエラー時のエラーメッセージを返す
         return f"要約生成に失敗しました: {str(e)}"
 
-
-def process_requests():
-    """キュー内のリクエストを順次処理"""
-    while True:
-        try:
-            # キューからリクエストデータを取得
-            article_text, original_headline, result_queue = request_queue.get()
-            logging.info("リクエスト処理を開始します")
-
-            # 要約を生成
-            headline = generate_headline(article_text, original_headline)
-
-            # 結果を返す
-            result_queue.put(headline)
-            logging.info("リクエスト処理が完了しました")
-        except Exception as e:
-            logging.error(f"リクエスト処理中にエラーが発生しました: {str(e)}")
-        finally:
-            request_queue.task_done()
-
-
-# スプーラー用のスレッドを開始
-threading.Thread(target=process_requests, daemon=True).start()
-
-
 @app.route("/headline", methods=["POST"])
 def headline_api():
     """APIエンドポイント：記事URLを受け取り、要約を生成して返す"""
@@ -201,29 +176,24 @@ def headline_api():
         # URLが指定されていない場合はエラーレスポンスを返す
         return jsonify({"headline": "記事URLが指定されていません"}), 400
 
-    if not original_headline:
-        # original_headlineが指定されていない場合はエラーレスポンスを返す
-        return jsonify({"headline": "元の見出しが指定されていません"}), 400
 
-    # 記事本文を取得
-    article_text = fetch_article_text(article_url)
-    if "失敗" in article_text:
-        # 記事本文の取得に失敗した場合はエラーレスポンスを返す
+    # 記事本文と釣り見出しを取得
+    article_text, original_headline = fetch_article_text(article_url)F
+    if "失敗" in article_text or not original_headline:
+        # 記事本文またはタイトルの取得に失敗した場合はエラーレスポンスを返す
         return jsonify({"headline": article_text}), 500
 
-    # 結果を受け取るためのキューを作成
-    result_queue = queue.Queue()
-
-    # リクエストをキューに追加
-    request_queue.put((article_text, original_headline, result_queue))
-
-    # 結果を待機
-    result = result_queue.get()
+    # 要約を生成
+    try:
+        headline = generate_headline(article_text, original_headline)
+    except Exception as e:
+        logging.error(f"要約生成中にエラーが発生しました: {str(e)}")
+        return jsonify({"headline": "要約生成に失敗しました"}), 500
 
     # 要約をJSON形式で返す
-    return jsonify({"headline": result["headline"], "judge": result["is_relevant"]})
+    return jsonify({"headline": headline["headline"], "judge": headline["is_relevant"]})
 
 
 if __name__ == "__main__":
     # Flaskアプリケーションをポート8000で起動
-    app.run(port=8000)
+    app.run(port=8000, threaded=True)
