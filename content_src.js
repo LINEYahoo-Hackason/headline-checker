@@ -1,11 +1,43 @@
 import { computePosition, shift, flip } from "@floating-ui/dom";
+import manifest from "./manifest.json";
 
 (function () {
   console.log("✅ content.js が実行されました");
   // 定数定義
-  let BASE_URL, REFERENCE_SELECTORS;
-  BASE_URL = "https://www.goo.ne.jp";
-  NEXT_URL = "https://news.goo.ne.jp/";
+  let BASE_URLS = [];
+  try {
+    // manifest.json の host_permissions から BASE_URLS を取得
+    const hostPermissions = manifest.host_permissions;
+    if (Array.isArray(hostPermissions) && hostPermissions.length > 0) {
+      // 現在の BASE_URL と比較
+      const currentBaseUrl = new URL(location.href).origin;
+      if (
+        hostPermissions.some((url) => new URL(url).origin === currentBaseUrl)
+      ) {
+        BASE_URLS = hostPermissions.map((url) => new URL(url).origin); // すべてのオリジンを取得
+      } else {
+        throw new Error(
+          "現在の BASE_URL が host_permissions に含まれていません"
+        );
+      }
+    } else {
+      throw new Error("host_permissions が見つからないか空です");
+    }
+  } catch (error) {
+    console.error("⚠️ BASE_URLS の設定に失敗しました:", error);
+    BASE_URLS = ["*"]; // 全てのURLを対象に設定
+  }
+  console.log(`🔗 BASE_URLS: ${BASE_URLS.join(", ")}`);
+
+  // // トップページ専用：URLが BASE_URLS のいずれかで始まる場合のみ実行
+  // const isTargetPage = BASE_URLS.some((baseUrl) =>
+  //   new RegExp("^" + baseUrl).test(location.href)
+  // );
+  // if (!isTargetPage) {
+  //   console.log("⚠️ このページは対象外です。"); // 対象外の場合のメッセージ
+  //   return; // 処理を終了
+  // }
+
   const TOOLTIP_STATES = {
     DEFAULT: "default",
     CLOSE: "close",
@@ -96,7 +128,9 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     tooltip.dataset.popupButton = "headline-check-open-popup-button";
 
     let articleUrl = getArticleUrl(reference);
-    let articleText = reference.querySelector("a")?.textContent.trim() || null; // <a>タグのテキストを取得
+    let articleText =
+      reference.querySelector("a")?.textContent.trim() ||
+      "取得できませんでした"; // <a>タグのテキストを取得
     tooltip.dataset.url = articleUrl;
 
     if (articleUrl) {
@@ -244,10 +278,14 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
       return;
     }
 
-    const parentLi = reference.closest("li");
+    let parentLi;
+    parentLi = reference.closest("li");
     if (!parentLi) {
-      console.error("親<li>要素が見つかりませんでした。");
-      return;
+      parentLi = reference.closest("a");
+      if (!parentLi) {
+        console.error("<a>要素が見つかりませんでした。");
+        return;
+      }
     }
 
     const parentWidth = parentLi.offsetWidth; // 親<li>要素の幅を取得
@@ -338,14 +376,6 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
     updateButtonState(tooltip, TOOLTIP_STATES.CLOSE);
   }
 
-  // トップページ専用：URLが https://www.goo.ne.jp/ で始まる場合のみ実行
-  const isTargetPage = new RegExp("^" + BASE_URL).test(location.href);
-
-  if (!isTargetPage) {
-    console.log("⚠️ このページは対象外です。"); // 対象外の場合のメッセージ
-    return; // 処理を終了
-  }
-
   // ツールチップを表示する関数
   function showTooltip(reference, tooltip) {
     computePosition(reference, tooltip, {
@@ -377,11 +407,24 @@ import { computePosition, shift, flip } from "@floating-ui/dom";
 
   // ツールチップを設定する関数
   function setupTooltips() {
-    const references = Array.from(document.querySelectorAll("ul > li")) // ul > li 要素を取得
-      .filter((li) => {
-        const link = li.querySelector("a"); // <a>タグを取得
-        return link && link.href.startsWith(NEXT_URL); // リンク先が条件を満たすか確認
-      });
+    // 記事要素を取得（<li>タグ以外も含む）
+    const references = Array.from(
+      document.querySelectorAll("ul > li, a")
+    ).filter((element) => {
+      const link = element.querySelector("a") || element.closest("a"); // <a>タグを取得
+      if (!link) {
+        console.warn("⚠️ 記事要素に<a>タグが含まれていません:", element);
+        return false; // <a>タグがない場合は対象外
+      }
+
+      // BASE_URLS に "*" が含まれている場合、すべてのリンクを対象にする
+      if (BASE_URLS.includes("*")) {
+        return true;
+      }
+
+      // BASE_URLS のいずれかで始まるリンクのみ対象
+      return BASE_URLS.some((baseUrl) => link.href.startsWith(baseUrl));
+    });
 
     logReferenceCount(references); // リンク数をログに表示
 
