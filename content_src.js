@@ -52,54 +52,54 @@ import manifest from "./manifest.json";
   const loadingCache = new Set();
 
   // 魚アイコンを作成する関数
-function createMovingFish() {
-  const span = document.createElement("span");
-  span.style.display = "flex";
-  span.style.width = "60px"; // 魚の動く範囲
-  span.style.height = "100%"; // ボタンの高さに合わせる
-  span.style.backgroundImage = "url('http://localhost:8000/static/fish.png')";
-  span.style.backgroundSize = "contain"; // 枠内に収まるように表示
-  span.style.backgroundRepeat = "no-repeat";
-  span.style.backgroundPosition = "center"; // 中央配置
-  span.style.position = "absolute"; // 絶対位置指定
-  span.style.top = "0"; // 上部に配置
-  span.style.right = "0"; // ボタン右端に合わせる
-  span.style.transform = "translateX(-50%)"; // 中央揃え
-  span.style.pointerEvents = "none"; // 魚アイコン自体はクリックできないように設定
-  span.style.zIndex = "10"; // ボタンの上に表示されるように設定
+  function createMovingFish() {
+    const span = document.createElement("span");
+    span.style.display = "flex";
+    span.style.width = "60px"; // 魚の動く範囲
+    span.style.height = "100%"; // ボタンの高さに合わせる
+    span.style.backgroundImage = "url('http://localhost:8000/static/fish.png')";
+    span.style.backgroundSize = "contain"; // 枠内に収まるように表示
+    span.style.backgroundRepeat = "no-repeat";
+    span.style.backgroundPosition = "center"; // 中央配置
+    span.style.position = "absolute"; // 絶対位置指定
+    span.style.top = "0"; // 上部に配置
+    span.style.right = "0"; // ボタン右端に合わせる
+    span.style.transform = "translateX(-50%)"; // 中央揃え
+    span.style.pointerEvents = "none"; // 魚アイコン自体はクリックできないように設定
+    span.style.zIndex = "10"; // ボタンの上に表示されるように設定
 
-  // アニメーション用のクラスを追加
-  span.classList.add("moving-fish");
+    // アニメーション用のクラスを追加
+    span.classList.add("moving-fish");
 
-  return span;
-}
+    return span;
+  }
 
-// CSSアニメーションを動的に追加
-const style = document.createElement("style");
-style.innerHTML = `
+  // CSSアニメーションを動的に追加
+  const style = document.createElement("style");
+  style.innerHTML = `
 @keyframes moveLeftRight {
   0% { transform: translateX(0); }
-  50% { transform: translateX(30px); }
+  50% { transform: translateX(-30px); }
   100% { transform: translateX(0); }
 }
 .moving-fish {
   animation: moveLeftRight 1s infinite ease-in-out;
 }
 `;
-document.head.appendChild(style);
+  document.head.appendChild(style);
 
-// ボタンのローディング状態に魚アイコンを表示
-function setButtonLoadingWithFish(button) {
-  const fish = createMovingFish();
-  button.appendChild(fish);
+  // ボタンのローディング状態に魚アイコンを表示
+  function setButtonLoadingWithFish(button) {
+    // const fish = createMovingFish();
+    // button.appendChild(fish);
 
-  // ローディング終了時に魚アイコンを削除
-  setTimeout(() => {
-    if (fish && fish.parentNode) {
-      fish.parentNode.removeChild(fish);
-    }
-  }, 3000); // 3秒後に削除
-}
+    // // ローディング終了時に魚アイコンを削除
+    // setTimeout(() => {
+    //   if (fish && fish.parentNode) {
+    //     fish.parentNode.removeChild(fish);
+    //   }
+    // }, 3000); // 3秒後に削除
+  }
 
   // ツールチップの状態を更新
   function updateButtonState(tooltip, state) {
@@ -116,14 +116,15 @@ function setButtonLoadingWithFish(button) {
       },
       [TOOLTIP_STATES.LOADING]: {
         text: "\u00A0",
-        backgroundImage:
-          'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%23ffffff"><circle cx="50" cy="50" r="40" stroke="%23ffffff" stroke-width="10" fill="none" stroke-dasharray="200" stroke-dashoffset="0"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="1s" repeatCount="indefinite"/></circle></svg>\')',
+        // backgroundImage:
+        //   'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%23ffffff"><circle cx="50" cy="50" r="40" stroke="%23ffffff" stroke-width="10" fill="none" stroke-dasharray="200" stroke-dashoffset="0"><animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="1s" repeatCount="indefinite"/></circle></svg>\')',
         classAction: "add",
-        additionalStyles: {
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "center",
-          backgroundSize: "contain",
-        },
+        // additionalStyles: {
+        //   backgroundRepeat: "no-repeat",
+        //   backgroundPosition: "center",
+        //   backgroundSize: "contain",
+        // },
+        spanElement: '<span class="moving-fish" style="display: flex;width: 60px;height: 100%;background-image: url(&quot;http://localhost:8000/static/fish.png&quot;);background-size: contain;background-repeat: no-repeat;background-position: center center;position: absolute;top: 0px;right: 0px;transform: translateX(-50%);pointer-events: none;z-index: 10;"></span>',
       },
     };
 
@@ -138,6 +139,10 @@ function setButtonLoadingWithFish(button) {
     // 追加のスタイルを適用
     if (config.additionalStyles) {
       Object.assign(tooltip.style, config.additionalStyles);
+    }
+    // span要素を追加
+    if (config.spanElement) {
+        tooltip.innerHTML += config.spanElement;
     }
 
     if (state === TOOLTIP_STATES.LOADING) {
@@ -434,7 +439,7 @@ function setButtonLoadingWithFish(button) {
   function showTooltip(reference, tooltip) {
     computePosition(reference, tooltip, {
       placement: "right", // ツールチップを右側に配置
-      middleware: [shift(), flip()],
+      middleware: [flip()],
     }).then(({ x, y }) => {
       Object.assign(tooltip.style, {
         left: `${x - 20}px`,
@@ -465,9 +470,9 @@ function setButtonLoadingWithFish(button) {
     const references = Array.from(
       document.querySelectorAll("ul > li, a")
     ).filter((element) => {
-      const link = element.querySelector("a") || element.closest("a"); // <a>タグを取得
+      const link = element.querySelector("a"); // <a>タグを取得  || element.closest("a")
       if (!link) {
-        console.warn("⚠️ 記事要素に<a>タグが含まれていません:", element);
+        // console.warn("⚠️ 記事要素に<a>タグが含まれていません:", element);
         return false; // <a>タグがない場合は対象外
       }
 
