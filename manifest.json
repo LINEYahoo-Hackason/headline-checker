@@ -26,6 +26,11 @@
     "default_popup": "loading/fishing-animation.html",
     "default_icon": "hello_extensions.png"
   },
+  "icons": {
+    "16": "hello_extensions.png",
+    "48": "hello_extensions.png",
+    "128": "hello_extensions.png"
+  },
   "background": {
     "service_worker": "background.js"
   }

@@ -8,8 +8,8 @@ from urllib.parse import urlparse, urljoin
 from datetime import datetime, timedelta
 
 # 定数定義
-MODEL_NAME = "llama-3.2-1b-instruct"
-# MODEL_NAME = "elyza-japanese-llama-2-7b-fast-instruct"
+#MODEL_NAME = "Llama-3.2-3B-Instruct-GGUF/Llama-3.2-3B-Instruct-Q4_K_S.gguf"
+MODEL_NAME = "elyza-japanese-llama-2-7b-fast-instruct"
 API_URL = "http://localhost:1234/v1/chat/completions"
 TEMPERATURE = 0.1
 
@@ -100,8 +100,8 @@ def extract_article_text(soup):
         # print(f"記事本文を抽出するセレクタ: {selector}")  # デバッグ用
         article_content = soup.select_one(selector)
         if article_content and article_content.get_text(strip=True):
-            print(f"記事本文を抽出しました: {selector}")  # デバッグ用
-            print(f"記事本文: {article_content.get_text(strip=True)}")  # デバッグ用
+           # print(f"記事本文を抽出しました: {selector}")  # デバッグ用
+           # print(f"記事本文: {article_content.get_text(strip=True)}")  # デバッグ用
             return article_content.get_text(strip=True)
 
     # フォールバック処理: ページ全体のテキストを取得
@@ -123,7 +123,7 @@ def follow_read_more_link(soup, base_url):
     )
 
     if read_more_link:
-        print(f"read_more_linkを辿ります: {read_more_link}")  # デバッグ用
+        #print(f"read_more_linkを辿ります: {read_more_link}")  # デバッグ用
         read_more_href = read_more_link.get("href")
         if read_more_href and not read_more_href.startswith("http"):
             # 相対URLを絶対URLに変換
@@ -192,11 +192,16 @@ def generate_headline(article_text, original_headline):
         "あなたは優秀なライターです。以下のニュース記事に基づいて次のタスクを実行してください：\n"
         "1. 元の見出しが記事内容に適切かどうかを判定してください。\n"
         "2. 記事内容に基づいて新しい見出しを生成してください。\n"
-        "- 重要な情報を含めてください。\n"
         "- 読者の興味を引くような表現を心がけてください。\n"
         "- 虚偽の内容を含めないでください。\n"
-        "- 見出しは20字程度にしてください\n"
-        "- 単語ではなく、文で出力してください\n\n"
+        "- 見出しは15字程度にしてください。\n"
+        "- 句読点は使用しないでください。\n"
+        "- ニュース記事に含まれる重要な情報を優先してください。\n"
+        "- 人に関する記事の見出しには人名を入れてください。\n"
+        "- 企業に関する記事の見出しには企業名を入れてください。\n"
+        "- 重要な情報を優先し、冗長な表現は省いてください。\n"
+        "- 記事の内容を正確に反映し、誤解を招く表現は避けてください。\n"
+        "- 単語ではなく、文で出力してください。\n\n"
         f"元の見出し: {original_headline}\n"
         f"記事内容：\n{article_text}\n\n"
         "出力形式:\n"
@@ -204,7 +209,7 @@ def generate_headline(article_text, original_headline):
         "新しい見出し: (生成された見出し)"
     )
     try:
-        # APIリクエストを送信して要約を生成（タイムアウトを設定）
+        # APIリクエストを送信してみだしを生成（タイムアウトを設定）
         response = requests.post(
             API_URL,
             json={
@@ -214,7 +219,7 @@ def generate_headline(article_text, original_headline):
                 ],  # プロンプトを含むメッセージ
                 "temperature": TEMPERATURE,  # 出力の多様性を制御するパラメータ
             },
-            timeout=200,  # タイムアウトを10秒に設定
+            timeout=200,  # タイムアウトを200秒に設定
         )
         response.raise_for_status()  # ステータスコードがエラーの場合例外を発生
         # レスポンスから要約を抽出して返す
